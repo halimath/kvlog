@@ -2,6 +2,27 @@
 
 `kvlog` is a logging library based on key-value logging implemented using go (golang).
 
+## Description
+
+`kvlog` provides types and functions to produce a log stream of key-value based log events. 
+Key-value based log messages differ from conventional string-based log messages. They do not
+contain a bare string message but any number of key-value-tuples which are encoded using a simple
+to parse syntax. This allows log processor systems such as the [ELK-stack](https://www.elastic.co/de/what-is/elk-stack)
+to analyze and index the log messages based on key-value-tuples.
+
+### Log Format
+
+The format used by `kvlog` follows the defaults of the 
+[logstash KV filter](https://www.elastic.co/guide/en/logstash/current/plugins-filters-kv.html). The following lines
+show examples of the log output
+
+```
+ts=2019-08-16T12:58:22 level=info event=<started>
+ts=2019-08-16T12:58:34 level=info event=<request> method=<GET> url=</> status=200 duration=0.001s
+ts=2019-08-16T12:58:34 level=info event=<request> method=<GET> url=</favicon.ico> status=404 duration=0.000s
+ts=2019-08-16T12:58:35 level=info event=<request> method=<POST> url=</pdf> status=200 duration=0.009s
+```
+
 ## Installation
 
 ```
@@ -62,7 +83,20 @@ func main () {
 `kvlog` contains an HTTP access log handler, that can be used to wrap other `http.Hander`s.
 
 ```go
+package main
 
+import (
+	"net/http"
+
+	"bitbucket.org/halimath/kvlog"
+)
+
+func main() {
+    mux := http.NewServeMux()
+    // ...
+	kvlog.Info(kvlog.KV("event", "started"))
+	http.ListenAndServe(":8000", kvlog.Handler(kvlog.L, mux))
+}
 ```
 
 # Changelog
