@@ -21,7 +21,7 @@ func TestMessageWriteTo(t *testing.T) {
 	var buf bytes.Buffer
 	m.WriteTo(&buf)
 
-	exp := fmt.Sprintf("ts=%s level=info foo=<bar> spam=<eggs>", now.Format("2006-01-02T15:04:05"))
+	exp := fmt.Sprintf("ts=%s level=info foo=bar spam=eggs", now.Format("2006-01-02T15:04:05"))
 	if buf.String() != exp {
 		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
 	}
