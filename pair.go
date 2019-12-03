@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"time"
+	"strings"
 )
 
 // KVPair implements a key-value pair
@@ -33,8 +34,21 @@ func (k KVPair) WriteTo(w io.Writer) error {
 		_, err = fmt.Fprintf(w, "%.3f", x)
 	case Level:
 		_, err = w.Write([]byte(x.String()))
+	case string:
+		err = writeStringValue(w, x)
 	default:
 		_, err = fmt.Fprintf(w, "<%v>", x)
+	}
+
+	return err
+}
+
+func writeStringValue(w io.Writer, val string) error {
+	var err error
+	if strings.ContainsAny(val, "<> =\t\n\r") {
+		_, err = fmt.Fprintf(w, "<%s>", val)		
+	} else {
+		_, err = w.Write([]byte(val))
 	}
 
 	return err

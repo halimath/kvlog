@@ -10,7 +10,7 @@ import (
 func TestWriteTo(t *testing.T) {
 	ts := time.Now()
 	tab := map[KVPair]string{
-		KV("foo", "bar"):         "foo=<bar>",
+		KV("foo", "bar"):         "foo=bar",
 		KV("foo", 19):            "foo=19",
 		KV("foo", 19.3):          "foo=19.300",
 		KV("foo", LevelInfo):     "foo=info",
