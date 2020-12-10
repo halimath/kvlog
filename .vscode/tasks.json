@@ -6,7 +6,7 @@
         {
             "label": "Run tests",
             "type": "shell",
-            "command": "go test",
+            "command": "go test -v ./...",
             "group": "test",
             "presentation": {
                 "reveal": "always",
