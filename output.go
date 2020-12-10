@@ -15,7 +15,7 @@ type Output interface {
 // WriterLogOutput implements a Output that writes to
 // an io.Writer
 type WriterLogOutput struct {
-	w io.Writer
+	W io.Writer
 }
 
 // WriteLogMessage writes the bytes to the writer
@@ -24,19 +24,19 @@ func (w *WriterLogOutput) WriteLogMessage(m Message) {
 	m.WriteTo(&buf)
 	buf.WriteString("\n")
 
-	w.w.Write(buf.Bytes())
+	w.W.Write(buf.Bytes())
 }
 
 // Stdout returns an Output that sends log messages to STDOUT.
 func Stdout() Output {
 	return &WriterLogOutput{
-		w: os.Stdout,
+		W: os.Stdout,
 	}
 }
 
 // Stderr returns an Output that sends log messages to STDERR.
 func Stderr() Output {
 	return &WriterLogOutput{
-		w: os.Stderr,
+		W: os.Stderr,
 	}
 }

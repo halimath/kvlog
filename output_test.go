@@ -10,7 +10,7 @@ import (
 func TestWriterLogOutput_WriteMessage(t *testing.T) {
 	var buf bytes.Buffer
 	o := &WriterLogOutput{
-		w: &buf,
+		W: &buf,
 	}
 
 	now := time.Now()

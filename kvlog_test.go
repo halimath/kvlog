@@ -1,24 +1,26 @@
-package kvlog
+package kvlog_test
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
 	"time"
+
+	"bitbucket.org/halimath/kvlog"
 )
 
 func TestPackage(t *testing.T) {
 	var buf bytes.Buffer
 	now := time.Now()
-	ConfigureOutput(&WriterLogOutput{
-		w: &buf,
+	kvlog.ConfigureOutput(&kvlog.WriterLogOutput{
+		W: &buf,
 	})
-	ConfigureThreshold(LevelWarn)
+	kvlog.ConfigureThreshold(kvlog.LevelWarn)
 
-	Debug(KV("event", "test"), KV("foo", "bar"))
-	Info(KV("event", "test"), KV("foo", "bar"))
-	Warn(KV("event", "test"), KV("foo", "bar"))
-	Error(KV("event", "test"), KV("foo", "bar"))
+	kvlog.Debug(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
+	kvlog.Info(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
+	kvlog.Warn(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
+	kvlog.Error(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
 
 	exp := fmt.Sprintf("ts=%s level=warn event=test foo=bar\nts=%s level=error event=test foo=bar\n", now.Format("2006-01-02T15:04:05"), now.Format("2006-01-02T15:04:05"))
 
@@ -28,7 +30,6 @@ func TestPackage(t *testing.T) {
 }
 
 func Example() {
-	Debug(KV("event", "test"), KV("foo", "bar"))
-	Info(KV("event", "test"), KV("foo", "bar"))
-
+	kvlog.Debug(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
+	kvlog.Info(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
 }
