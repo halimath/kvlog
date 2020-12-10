@@ -1,7 +1,6 @@
 package kvlog
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -10,7 +9,6 @@ type mockOutput struct {
 }
 
 func (m *mockOutput) WriteLogMessage(msg Message) {
-	fmt.Printf("%#v\n", msg)
 	m.messages = append(m.messages, msg)
 }
 
