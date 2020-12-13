@@ -28,7 +28,7 @@ Every `Logger` uses a set of `Handler`s. A `Handler` is responsible for
 
 ### Log Format
 
-The format used by `kvlog` follows the defaults of the 
+The format used by `kvlog` by default follows the defaults of the 
 [logstash KV filter](https://www.elastic.co/guide/en/logstash/current/plugins-filters-kv.html). The following lines
 show examples of the log output
 
@@ -61,18 +61,15 @@ import (
 )
 
 func main () {
-    // Optionally configure threshold
-    kvlog.ConfigureThreshold(kvlog.LevelWarn)
-
     // ...
 
     kvlog.Info(kvlog.KV("event", "App started"))
 }
 ```
 
-The module provides methods for all log level (`Debug`, `Info`, `Warn`, `Error`) as well as configuration methods
-for the threshold (`ConfigureThreshold`) which defaults to `info` and for the output (`ConfigureOutput`) which 
-defaults to `stdout`.
+The module provides functions for all log level (`Debug`, `Info`, `Warn`, `Error`) as well as a configuration function
+for initializing the package level logger (i.e. configuring output and threshold as well as other filters). The default
+is to log everything of level `Info` or above to `stdout` using the default log format.
 
 ### Logger instance
 
@@ -86,7 +83,7 @@ import (
 )
 
 func main () {
-    l := kvlog.NewLogger(kvlog.Stdout(), kvlog.LevelInfo)
+    l := kvlog.NewLogger(kvlog.NewHandler(kvlog.KVFormatter, kvlog.Stdout(), kvlog.Threshold(kvlog.LevelWarn)))
 
     // ...
 
@@ -94,9 +91,10 @@ func main () {
 }
 ```
 
-### HTTP handler
+### HTTP Middleware
 
-`kvlog` contains an HTTP access log handler, that can be used to wrap other `http.Hander`s.
+`kvlog` contains a HTTP middleware that generates an access log. It wraps another `http.Hander` allowing you to
+log only requests on those handlers you are interested in.
 
 ```go
 package main
@@ -111,11 +109,16 @@ func main() {
     mux := http.NewServeMux()
     // ...
 	kvlog.Info(kvlog.KV("event", "started"))
-	http.ListenAndServe(":8000", kvlog.Handler(kvlog.L, mux))
+	http.ListenAndServe(":8000", kvlog.Middleware(kvlog.L, mux))
 }
 ```
 
 # Changelog
+
+## 0.3.0
+__Caution, breaking changes:__ This version provides a new API which is _not compatible_ to the 
+API exposed before.
+* Introduction of new component structure (see description above)
 
 ## 0.2.0
 * Improve log message rendering
