@@ -1,51 +1,96 @@
+//
+// This file is part of kvlog.
+//
+// Copyright 2019, 2020 Alexander Metzner.
+//
+// Copyright 2019, 2020 Alexander Metzner.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package kvlog
 
 import (
-	"net/http"
-	"time"
+	"io"
 )
 
-type accessLogHandler struct {
-	logger   *Logger
-	delegate http.Handler
+// Filter defines the interface for types that filter
+// messages.
+type Filter interface {
+	// Filter filters the given message m and returns
+	// either a message (which may be m) to be handled
+	// or nil if the given message should be dropped.
+	Filter(m Message) Message
 }
 
-type responseWriterWrapper struct {
-	w          http.ResponseWriter
-	statusCode int
+// FilterFunc is a wrapper type implementing Filter
+// that wraps a plain function.
+type FilterFunc func(m Message) Message
+
+// Filter just calls f to perform filtering.
+func (f FilterFunc) Filter(m Message) Message {
+	return f(m)
 }
 
-func (w *responseWriterWrapper) Header() http.Header {
-	return w.w.Header()
+// Threshold is a factory for a Filter that
+// drops messages if their level is less
+// then the given threshold.
+func Threshold(threshold Level) Filter {
+	return FilterFunc(func(m Message) Message {
+		if m.Level() >= threshold {
+			return m
+		}
+		return nil
+	})
 }
 
-func (w *responseWriterWrapper) Write(data []byte) (int, error) {
-	return w.w.Write(data)
+// --
+
+// Handler implements a threshold
+type Handler struct {
+	formatter Formatter
+	output    Output
+	filter    []Filter
 }
 
-func (w *responseWriterWrapper) WriteHeader(statusCode int) {
-	w.statusCode = statusCode
-	w.w.WriteHeader(statusCode)
-}
-
-func (l *accessLogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-
-	wrapper := &responseWriterWrapper{
-		w:          w,
-		statusCode: 200,
+// Deliver performs the delivery of the given message.
+func (h *Handler) Deliver(m Message) {
+	for _, f := range h.filter {
+		m = f.Filter(m)
+		if m == nil {
+			return
+		}
 	}
-
-	l.delegate.ServeHTTP(wrapper, r)
-
-	requestTime := time.Now().Sub(startTime)
-	l.logger.Info(KV("event", "request"), KV("method", r.Method), KV("url", r.URL), KV("status", wrapper.statusCode), KV("duration", requestTime))
+	h.formatter.Format(m, h.output)
 }
 
-// Handler returns a http.Handler that acts as an access log middleware
-func Handler(l *Logger, h http.Handler) http.Handler {
-	return &accessLogHandler{
-		logger:   l,
-		delegate: h,
+// Close closes the handler terminating its service.
+// The underlying output is also closed.
+func (h *Handler) Close() {
+	c, ok := h.output.(io.Closer)
+	if ok {
+		c.Close()
+	}
+}
+
+// NewHandler creates a new Handler using the provided values.
+func NewHandler(formatter Formatter, output Output, filter ...Filter) *Handler {
+	filterToUse := make([]Filter, len(filter))
+	copy(filterToUse, filter)
+
+	return &Handler{
+		formatter: formatter,
+		output:    output,
+		filter:    filterToUse,
 	}
 }

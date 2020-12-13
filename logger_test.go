@@ -1,32 +1,42 @@
 package kvlog
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
+	"time"
 )
 
-type mockOutput struct {
-	messages []Message
-}
-
-func (m *mockOutput) WriteLogMessage(msg Message) {
-	fmt.Printf("%#v\n", msg)
-	m.messages = append(m.messages, msg)
-}
-
 func TestLogger(t *testing.T) {
-	o := mockOutput{}
-	l := &Logger{
-		out:       &o,
-		Threshold: LevelWarn,
-	}
+	var output1, output2 bytes.Buffer
+
+	l := NewLogger(
+		NewHandler(KVFormatter, &output1, Threshold(LevelDebug)),
+		NewHandler(KVFormatter, &output2, Threshold(LevelError)),
+	)
+
+	now := time.Now().Format("2006-01-02T15:04:05")
 
 	l.Debug(KV("foo", "bar"))
 	l.Info(KV("foo", "bar"))
 	l.Warn(KV("foo", "bar"))
 	l.Error(KV("foo", "bar"))
 
-	if len(o.messages) != 2 {
-		t.Errorf("expected 2 messages but got %d", len(o.messages))
+	l.Close()
+
+	exp1 := fmt.Sprintf(`ts=%[1]s level=debug foo=bar
+ts=%[1]s level=info foo=bar
+ts=%[1]s level=warn foo=bar
+ts=%[1]s level=error foo=bar
+`, now)
+
+	if output1.String() != exp1 {
+		t.Errorf("expected '%s' but got '%s'", exp1, output1.String())
 	}
+
+	exp2 := fmt.Sprintf("ts=%[1]s level=error foo=bar\n", now)
+	if output2.String() != exp2 {
+		t.Errorf("expected '%s' but got '%s'", exp2, output2.String())
+	}
+
 }

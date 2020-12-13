@@ -1,13 +1,64 @@
 package kvlog
 
 import (
-	"fmt"
-	"io"
 	"time"
 )
 
+// Level defines the valid log levels.
+type Level int
+
+// String provides a string representation of the log level.
+func (l Level) String() string {
+	switch l {
+	case LevelDebug:
+		return "debug"
+	case LevelInfo:
+		return "info"
+	case LevelWarn:
+		return "warn"
+	case LevelError:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
 const (
-	KeyLevel     = "level"
+	// LevelDebug log level
+	LevelDebug Level = iota
+	// LevelInfo log level
+	LevelInfo
+	// LevelWarn log level
+	LevelWarn
+	// LevelError log level
+	LevelError
+)
+
+// --
+
+// KVPair implements a key-value pair
+type KVPair struct {
+	// Key stores the key of the pair
+	Key string
+
+	// Value stores the value
+	Value interface{}
+}
+
+// KV is a factory method for KVPair objects
+func KV(key string, value interface{}) KVPair {
+	return KVPair{
+		Key:   key,
+		Value: value,
+	}
+}
+
+// --
+
+const (
+	// KeyLevel defines the message key containing the message's level.
+	KeyLevel = "level"
+	// KeyTimestamp defines the message key containing the message's timestamp.
 	KeyTimestamp = "ts"
 )
 
@@ -24,17 +75,6 @@ func (m Message) Level() Level {
 	}
 
 	return LevelDebug
-}
-
-func (m Message) WriteTo(w io.Writer) error {
-	for i, p := range m {
-		if i > 0 {
-			fmt.Fprint(w, " ")
-		}
-		p.WriteTo(w)
-	}
-
-	return nil
 }
 
 // NewMessage creates a new message from the given log level and key-value pairs

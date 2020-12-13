@@ -10,9 +10,25 @@ contain a bare string message but any number of key-value-tuples which are encod
 to parse syntax. This allows log processor systems such as the [ELK-stack](https://www.elastic.co/de/what-is/elk-stack)
 to analyze and index the log messages based on key-value-tuples.
 
+### Components
+
+`kvlog` is built from a set of _components_ that interact to implement logging functionality.
+
+A `Message` is produced by the client. Every `Message` consists of `Pair`s each representing
+a single key-value-pair. `kvlog` provides a convenient and idiomatic API to create `Pair`s and
+`Message`s.
+
+The `Message` is then given to a `Logger`. A `Logger` may augment the message with additional
+`Pair`s. It's common for a `Logger` to add at least a `level` and a `ts` (timestamp) `Pair`, but
+`Logger`s may add other `Pair`s.
+
+Every `Logger` uses a set of `Handler`s. A `Handler` is responsible for
+* formatting the `Message` using a `Formatter`
+* delivering the `Message` using an `Output`
+
 ### Log Format
 
-The format used by `kvlog` follows the defaults of the 
+The format used by `kvlog` by default follows the defaults of the 
 [logstash KV filter](https://www.elastic.co/guide/en/logstash/current/plugins-filters-kv.html). The following lines
 show examples of the log output
 
@@ -45,18 +61,15 @@ import (
 )
 
 func main () {
-    // Optionally configure threshold
-    kvlog.ConfigureThreshold(kvlog.LevelWarn)
-
     // ...
 
     kvlog.Info(kvlog.KV("event", "App started"))
 }
 ```
 
-The module provides methods for all log level (`Debug`, `Info`, `Warn`, `Error`) as well as configuration methods
-for the threshold (`ConfigureThreshold`) which defaults to `info` and for the output (`ConfigureOutput`) which 
-defaults to `stdout`.
+The module provides functions for all log level (`Debug`, `Info`, `Warn`, `Error`) as well as a configuration function
+for initializing the package level logger (i.e. configuring output and threshold as well as other filters). The default
+is to log everything of level `Info` or above to `stdout` using the default log format.
 
 ### Logger instance
 
@@ -70,7 +83,7 @@ import (
 )
 
 func main () {
-    l := kvlog.NewLogger(kvlog.Stdout(), kvlog.LevelInfo)
+    l := kvlog.NewLogger(kvlog.NewHandler(kvlog.KVFormatter, kvlog.Stdout(), kvlog.Threshold(kvlog.LevelWarn)))
 
     // ...
 
@@ -78,9 +91,10 @@ func main () {
 }
 ```
 
-### HTTP handler
+### HTTP Middleware
 
-`kvlog` contains an HTTP access log handler, that can be used to wrap other `http.Hander`s.
+`kvlog` contains a HTTP middleware that generates an access log. It wraps another `http.Hander` allowing you to
+log only requests on those handlers you are interested in.
 
 ```go
 package main
@@ -95,20 +109,27 @@ func main() {
     mux := http.NewServeMux()
     // ...
 	kvlog.Info(kvlog.KV("event", "started"))
-	http.ListenAndServe(":8000", kvlog.Handler(kvlog.L, mux))
+	http.ListenAndServe(":8000", kvlog.Middleware(kvlog.L, mux))
 }
 ```
 
 # Changelog
 
-## 0.1.0
+## 0.3.0
+__Caution, breaking changes:__ This version provides a new API which is _not compatible_ to the 
+API exposed before.
+* Introduction of new component structure (see description above)
 
+## 0.2.0
+* Improve log message rendering
+
+## 0.1.0
 * Initial release
 
 # License
 
 ```
-Copyright 2019 Alexander Metzner.
+Copyright 2019, 2020 Alexander Metzner.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
