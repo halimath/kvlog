@@ -52,12 +52,15 @@ func NewLogger(handler ...*Handler) *Logger {
 	return &l
 }
 
+// Log logs the given message.
 func (l *Logger) Log(m Message) {
 	for _, c := range l.handler {
 		c <- m
 	}
 }
 
+// Close closes the handlers registered to this logger and waits for the goroutines
+// to finish.
 func (l *Logger) Close() {
 	for _, c := range l.handler {
 		close(c)
@@ -65,18 +68,22 @@ func (l *Logger) Close() {
 	l.wg.Wait()
 }
 
+// Debug logs a message with level Debug.
 func (l *Logger) Debug(pairs ...KVPair) {
 	l.Log(NewMessage(LevelDebug, pairs...))
 }
 
+// Info logs a message with level Info.
 func (l *Logger) Info(pairs ...KVPair) {
 	l.Log(NewMessage(LevelInfo, pairs...))
 }
 
+// Warn logs a message with level Warn.
 func (l *Logger) Warn(pairs ...KVPair) {
 	l.Log(NewMessage(LevelWarn, pairs...))
 }
 
+// Error logs a message with level Error.
 func (l *Logger) Error(pairs ...KVPair) {
 	l.Log(NewMessage(LevelError, pairs...))
 }
