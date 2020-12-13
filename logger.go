@@ -1,60 +1,68 @@
-// Package kvlog provides a key-value based logging system primary targetting
-// container based deployments.
+//
+// This file is part of kvlog.
+//
+// Copyright 2019, 2020 Alexander Metzner.
+//
+// Copyright 2019, 2020 Alexander Metzner.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package kvlog
 
-// Level defines the valid log levels
-type Level int
-
-// String provides a string representation of the log level
-func (l Level) String() string {
-	switch l {
-	case LevelDebug:
-		return "debug"
-	case LevelInfo:
-		return "info"
-	case LevelWarn:
-		return "warn"
-	case LevelError:
-		return "error"
-	default:
-		return "unknown"
-	}
-}
-
-const (
-	// LevelDebug log level
-	LevelDebug Level = iota
-	// LevelInfo log level
-	LevelInfo
-	// LevelWarn log level
-	LevelWarn
-	// LevelError log level
-	LevelError
-)
-
-// --
+import "sync"
 
 // Logger implements a logger component.
-// The output is written to the given output.
 type Logger struct {
-	out       Output
-	Threshold Level
+	handler []chan Message
+	wg      sync.WaitGroup
 }
 
 // NewLogger constructs a new Logger and returns a pointer to it.
-func NewLogger(out Output, threshold Level) *Logger {
-	return &Logger{
-		out:       out,
-		Threshold: threshold,
+func NewLogger(handler ...*Handler) *Logger {
+	l := Logger{
+		handler: make([]chan Message, 0, len(handler)),
 	}
+
+	for _, h := range handler {
+		c := make(chan Message, 10)
+
+		l.wg.Add(1)
+		go func(c chan Message, h *Handler) {
+			defer l.wg.Done()
+			for m := range c {
+				h.Deliver(m)
+			}
+			h.Close()
+		}(c, h)
+
+		l.handler = append(l.handler, c)
+	}
+
+	return &l
 }
 
 func (l *Logger) Log(m Message) {
-	if m.Level() < l.Threshold {
-		return
+	for _, c := range l.handler {
+		c <- m
 	}
+}
 
-	l.out.WriteLogMessage(m)
+func (l *Logger) Close() {
+	for _, c := range l.handler {
+		close(c)
+	}
+	l.wg.Wait()
 }
 
 func (l *Logger) Debug(pairs ...KVPair) {

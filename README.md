@@ -10,6 +10,22 @@ contain a bare string message but any number of key-value-tuples which are encod
 to parse syntax. This allows log processor systems such as the [ELK-stack](https://www.elastic.co/de/what-is/elk-stack)
 to analyze and index the log messages based on key-value-tuples.
 
+### Components
+
+`kvlog` is built from a set of _components_ that interact to implement logging functionality.
+
+A `Message` is produced by the client. Every `Message` consists of `Pair`s each representing
+a single key-value-pair. `kvlog` provides a convenient and idiomatic API to create `Pair`s and
+`Message`s.
+
+The `Message` is then given to a `Logger`. A `Logger` may augment the message with additional
+`Pair`s. It's common for a `Logger` to add at least a `level` and a `ts` (timestamp) `Pair`, but
+`Logger`s may add other `Pair`s.
+
+Every `Logger` uses a set of `Handler`s. A `Handler` is responsible for
+* formatting the `Message` using a `Formatter`
+* delivering the `Message` using an `Output`
+
 ### Log Format
 
 The format used by `kvlog` follows the defaults of the 
@@ -101,14 +117,16 @@ func main() {
 
 # Changelog
 
-## 0.1.0
+## 0.2.0
+* Improve log message rendering
 
+## 0.1.0
 * Initial release
 
 # License
 
 ```
-Copyright 2019 Alexander Metzner.
+Copyright 2019, 2020 Alexander Metzner.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

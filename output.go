@@ -1,42 +1,54 @@
+//
+// This file is part of kvlog.
+//
+// Copyright 2019, 2020 Alexander Metzner.
+//
+// Copyright 2019, 2020 Alexander Metzner.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package kvlog
 
 import (
-	"bytes"
 	"io"
 	"os"
 )
 
-// Output describes the interface to be implemented by
-// log output streams
+// Output defines the interface that must be implemented by types
+// that handle output.
 type Output interface {
-	WriteLogMessage(m Message)
+	io.Writer
 }
 
-// WriterLogOutput implements a Output that writes to
-// an io.Writer
-type WriterLogOutput struct {
-	W io.Writer
+type nonClosingWriterOutput struct {
+	io.Writer
 }
 
-// WriteLogMessage writes the bytes to the writer
-func (w *WriterLogOutput) WriteLogMessage(m Message) {
-	var buf bytes.Buffer
-	m.WriteTo(&buf)
-	buf.WriteString("\n")
-
-	w.W.Write(buf.Bytes())
+func (n *nonClosingWriterOutput) Close() error {
+	return nil
 }
 
-// Stdout returns an Output that sends log messages to STDOUT.
+// Stdout returns an Output that writes the STDOUT but ignores any request to close the stream.
 func Stdout() Output {
-	return &WriterLogOutput{
-		W: os.Stdout,
+	return &nonClosingWriterOutput{
+		Writer: os.Stdout,
 	}
 }
 
-// Stderr returns an Output that sends log messages to STDERR.
+// Stderr returns an Output that writes the STDOUT but ignores any request to close the stream.
 func Stderr() Output {
-	return &WriterLogOutput{
-		W: os.Stderr,
+	return &nonClosingWriterOutput{
+		Writer: os.Stderr,
 	}
 }
