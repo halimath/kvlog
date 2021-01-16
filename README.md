@@ -115,6 +115,9 @@ func main() {
 
 # Changelog
 
+## 0.4.0
+* Export package level logger instance `L`
+
 ## 0.3.0
 __Caution, breaking changes:__ This version provides a new API which is _not compatible_ to the 
 API exposed before.
