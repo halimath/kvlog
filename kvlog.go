@@ -21,7 +21,9 @@
 // Package kvlog provides a key-value based logging system.
 package kvlog
 
-var l *Logger
+// L is the Logger instance used by package level functions.
+// Use this logger as a convenience.
+var L *Logger
 
 func init() {
 	Init(NewHandler(KVFormatter, Stdout(), Threshold(LevelInfo)))
@@ -31,28 +33,28 @@ func init() {
 // using the given handler. The previous logger is closed if
 // it had been set before.
 func Init(handler ...*Handler) {
-	if l != nil {
-		l.Close()
+	if L != nil {
+		L.Close()
 	}
-	l = NewLogger(handler...)
+	L = NewLogger(handler...)
 }
 
 // Debug emits a log message of level debug.
 func Debug(pairs ...KVPair) {
-	l.Debug(pairs...)
+	L.Debug(pairs...)
 }
 
 // Info emits a log message of level info.
 func Info(pairs ...KVPair) {
-	l.Info(pairs...)
+	L.Info(pairs...)
 }
 
 // Warn emits a log message of level warn.
 func Warn(pairs ...KVPair) {
-	l.Warn(pairs...)
+	L.Warn(pairs...)
 }
 
 // Error emits a log message of level error.
 func Error(pairs ...KVPair) {
-	l.Error(pairs...)
+	L.Error(pairs...)
 }
