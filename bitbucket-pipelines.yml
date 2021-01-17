@@ -1,8 +1,0 @@
-image: golang
-
-pipelines:
-  default:
-    - step:        
-        script: 
-          - go test -cover ./...
-          - go build          
