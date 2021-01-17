@@ -118,6 +118,11 @@ func main() {
 
 # Changelog
 
+## 0.5.0
+* `KVFormatter` sorts pairs based on key
+* New `TerminalFormatter` providing colored output on terminals
+* Moved to github
+
 ## 0.4.0
 * Export package level logger instance `L`
 
