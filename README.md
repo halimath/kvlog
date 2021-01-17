@@ -45,7 +45,7 @@ ts=2019-08-16T12:58:35 level=info evt=request duration=0.009s method=POST status
 ## Installation
 
 ```
-$ go get -u bitbucket.org/halimath/kvlog
+$ go get -u github.com/halimath/kvlog
 ```
 
 ## Usage
@@ -60,7 +60,7 @@ The most simple usage uses module functions.
 package main
 
 import (
-    "bitbucket.org/halimath/kvlog"
+    "github.com/halimath/kvlog"
 )
 
 func main () {
@@ -82,7 +82,7 @@ A more advanced usage involves a dedicated `Logger` instance which can be used i
 package main
 
 import (
-    "bitbucket.org/halimath/kvlog"
+    "github.com/halimath/kvlog"
 )
 
 func main () {
@@ -105,7 +105,7 @@ package main
 import (
 	"net/http"
 
-	"bitbucket.org/halimath/kvlog"
+	"github.com/halimath/kvlog"
 )
 
 func main() {

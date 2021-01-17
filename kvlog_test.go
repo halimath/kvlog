@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"bitbucket.org/halimath/kvlog"
+	"github.com/halimath/kvlog"
 )
 
 func TestPackage(t *testing.T) {
