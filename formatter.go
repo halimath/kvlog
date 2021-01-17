@@ -23,6 +23,8 @@ package kvlog
 import (
 	"fmt"
 	"io"
+	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -43,11 +45,43 @@ func (ff FormatterFunc) Format(m Message, w io.Writer) error {
 	return ff(m, w)
 }
 
-// KVFormatter implements a Formatter that writes the default KV format.
-var KVFormatter = FormatterFunc(formatMessage)
+// --
 
-func formatMessage(m Message, w io.Writer) error {
-	for i, p := range m {
+// KVFormatter implements a Formatter that writes the default KV format.
+var KVFormatter = FormatterFunc(formatMessageAsKV)
+
+type byKey []KVPair
+
+func (s byKey) Len() int      { return len(s) }
+func (s byKey) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s byKey) Less(i, j int) bool {
+	if s[i].Key == KeyTimestamp {
+		return true
+	}
+	if s[j].Key == KeyTimestamp {
+		return false
+	}
+	if s[i].Key == KeyLevel {
+		return true
+	}
+	if s[j].Key == KeyLevel {
+		return false
+	}
+	if s[i].Key == KeyEvent {
+		return true
+	}
+	if s[j].Key == KeyEvent {
+		return false
+	}
+
+	return strings.Compare(s[i].Key, s[j].Key) < 0
+}
+
+func formatMessageAsKV(m Message, w io.Writer) error {
+	sorted := byKey(m)
+	sort.Sort(sorted)
+
+	for i, p := range sorted {
 		if i > 0 {
 			fmt.Fprint(w, " ")
 		}
@@ -59,12 +93,17 @@ func formatMessage(m Message, w io.Writer) error {
 	return nil
 }
 
-func formatPair(k KVPair, w io.Writer) error {
-	var err error
+func formatPair(k KVPair, w io.Writer) (err error) {
 	if _, err := fmt.Fprintf(w, "%s=", k.Key); err != nil {
 		return err
 	}
 
+	err = formatValue(k, w)
+
+	return
+}
+
+func formatValue(k KVPair, w io.Writer) (err error) {
 	switch x := k.Value.(type) {
 	case time.Time:
 		_, err = w.Write([]byte(x.Format("2006-01-02T15:04:05")))
@@ -82,16 +121,88 @@ func formatPair(k KVPair, w io.Writer) error {
 		_, err = fmt.Fprintf(w, "<%v>", x)
 	}
 
-	return err
+	return
 }
 
-func formatStringValue(w io.Writer, val string) error {
-	var err error
+func formatStringValue(w io.Writer, val string) (err error) {
 	if strings.ContainsAny(val, "<> =\t\n\r") {
 		_, err = fmt.Fprintf(w, "<%s>", val)
 	} else {
 		_, err = w.Write([]byte(val))
 	}
 
-	return err
+	return
+}
+
+// --
+
+var TerminalFormatter = FormatterFunc(formatMessageForTerminal)
+
+func formatMessageForTerminal(m Message, w io.Writer) (err error) {
+	sorted := byKey(m)
+	sort.Sort(sorted)
+
+	for i, p := range sorted {
+		if i > 0 {
+			fmt.Fprint(w, " ")
+		}
+
+		if p.Key == KeyTimestamp {
+			_, err = w.Write([]byte("\x1b[36m"))
+			if err != nil {
+				return
+			}
+			err = formatValue(p, w)
+			if err != nil {
+				return
+			}
+			_, err = w.Write([]byte("\x1b[0m"))
+			if err != nil {
+				return
+			}
+
+		} else if p.Key == KeyLevel {
+			switch p.Value {
+			case LevelDebug:
+				_, err = w.Write([]byte("\x1b[90mDEBUG\x1b[0m"))
+			case LevelInfo:
+				_, err = w.Write([]byte(" \x1b[37mINFO\x1b[0m"))
+			case LevelWarn:
+				_, err = w.Write([]byte(" \x1b[30;103mWARN\x1b[0m"))
+			case LevelError:
+				_, err = w.Write([]byte("\x1b[37;41mERROR\x1b[0m"))
+			default:
+				panic(fmt.Sprintf("unexpected log level: %#v", p.Value))
+			}
+
+			if err != nil {
+				return
+			}
+
+		} else {
+			_, err = fmt.Fprintf(w, "\x1b[90m%s=\x1b[0m\x1b[97m", p.Key)
+			if err != nil {
+				return
+			}
+			err = formatValue(p, w)
+			if err != nil {
+				return
+			}
+			_, err = w.Write([]byte("\x1b[0m"))
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	_, err = w.Write([]byte("\n"))
+
+	return
+}
+
+func isTerminal() bool {
+	if fileInfo, _ := os.Stdout.Stat(); (fileInfo.Mode() & os.ModeCharDevice) != 0 {
+		return true
+	}
+	return false
 }

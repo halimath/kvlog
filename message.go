@@ -45,10 +45,18 @@ type KVPair struct {
 	Value interface{}
 }
 
-// KV is a factory method for KVPair objects
+// KV is a factory method for KVPair values.
 func KV(key string, value interface{}) KVPair {
 	return KVPair{
 		Key:   key,
+		Value: value,
+	}
+}
+
+// Event is a factory method for a KVPair that uses the default event key.
+func Event(value interface{}) KVPair {
+	return KVPair{
+		Key:   KeyEvent,
 		Value: value,
 	}
 }
@@ -58,8 +66,12 @@ func KV(key string, value interface{}) KVPair {
 const (
 	// KeyLevel defines the message key containing the message's level.
 	KeyLevel = "level"
+
 	// KeyTimestamp defines the message key containing the message's timestamp.
 	KeyTimestamp = "ts"
+
+	// KeyEvent defines the default message key containing the message's event.
+	KeyEvent = "evt"
 )
 
 // Message represents a single log message expressed as an ordered list of key value pairs

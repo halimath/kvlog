@@ -31,7 +31,7 @@ func TestKVFormatter(t *testing.T) {
 	now := time.Now()
 
 	table := map[*Message]string{
-		m(LevelInfo, KV("foo", "bar"), KV("spam", "eggs")): fmt.Sprintf("ts=%s level=info foo=bar spam=eggs\n", now.Format("2006-01-02T15:04:05")),
+		m(LevelInfo, KV("spam", "eggs"), KV("foo", "bar")): fmt.Sprintf("ts=%s level=info foo=bar spam=eggs\n", now.Format("2006-01-02T15:04:05")),
 	}
 
 	for msg, exp := range table {
@@ -62,6 +62,26 @@ func TestFormatPair(t *testing.T) {
 			t.Errorf("failed to format %#v: %s", kv, err)
 		} else if buf.String() != exp {
 			t.Errorf("failed to write %#v: expected '%s' but got '%s'", kv, exp, buf.String())
+		}
+	}
+}
+
+func TestTerminalFormatter(t *testing.T) {
+	now := time.Now()
+
+	table := map[*Message]string{
+		m(LevelDebug, KV("spam", "eggs"), KV("foo", "bar")): fmt.Sprintf("\x1b[36m%s\x1b[0m \x1b[90mDEBUG\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format("2006-01-02T15:04:05")),
+		m(LevelInfo, KV("spam", "eggs"), KV("foo", "bar")):  fmt.Sprintf("\x1b[36m%s\x1b[0m  \x1b[37mINFO\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format("2006-01-02T15:04:05")),
+		m(LevelWarn, KV("spam", "eggs"), KV("foo", "bar")):  fmt.Sprintf("\x1b[36m%s\x1b[0m  \x1b[30;103mWARN\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format("2006-01-02T15:04:05")),
+		m(LevelError, KV("spam", "eggs"), KV("foo", "bar")): fmt.Sprintf("\x1b[36m%s\x1b[0m \x1b[37;41mERROR\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format("2006-01-02T15:04:05")),
+	}
+
+	for msg, exp := range table {
+		var buf bytes.Buffer
+		if err := TerminalFormatter.Format(*msg, &buf); err != nil {
+			t.Errorf("failed to format message: %s", err)
+		} else if exp != buf.String() {
+			t.Errorf("expected '%s' but got '%s'", exp, buf.String())
 		}
 	}
 }

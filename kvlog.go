@@ -18,7 +18,7 @@
 // limitations under the License.
 //
 
-// Package kvlog provides a key-value based logging system.
+// Package kvlog provides a structured logging facility. It's structure is using key-value pairs.
 package kvlog
 
 // L is the Logger instance used by package level functions.
@@ -26,7 +26,13 @@ package kvlog
 var L *Logger
 
 func init() {
-	Init(NewHandler(KVFormatter, Stdout(), Threshold(LevelInfo)))
+	var f Formatter
+	if isTerminal() {
+		f = TerminalFormatter
+	} else {
+		f = KVFormatter
+	}
+	Init(NewHandler(f, Stdout(), Threshold(LevelInfo)))
 }
 
 // Init initializes the package global logger to a new logger

@@ -47,7 +47,7 @@ func TestMiddleware(t *testing.T) {
 
 	logger.Close()
 
-	expected := fmt.Sprintf("ts=%s level=info event=request method=get url=</test/path> status=204 duration=0.000s\n", now)
+	expected := fmt.Sprintf("ts=%s level=info evt=request duration=0.000s method=get status=204 url=</test/path>\n", now)
 
 	if expected != out.String() {
 		t.Errorf("expected\n%s but got\n%s", expected, out.String())

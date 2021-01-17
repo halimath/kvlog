@@ -1,14 +1,17 @@
 # kvlog
 
-`kvlog` is a logging library based on key-value logging implemented using go (golang).
+`kvlog` is a library which provides a structured logging facility for the go programming language(golang). 
+`kvlog`'s structure is based on key-value pairs.
 
 ## Description
 
-`kvlog` provides types and functions to produce a log stream of key-value based log events. 
-Key-value based log messages differ from conventional string-based log messages. They do not
-contain a bare string message but any number of key-value-tuples which are encoded using a simple
-to parse syntax. This allows log processor systems such as the [ELK-stack](https://www.elastic.co/de/what-is/elk-stack)
-to analyze and index the log messages based on key-value-tuples.
+`kvlog` provides types and functions to produce a log stream of log events. Each event consists
+of key-value pairs which may be encoded in different ways. The library provides multiple formatters
+and allows for custom formatters to be used.
+
+Structured log messages differ from conventional string-based log messages. They do not
+contain a bare string message but its information is structured in a way which allows other
+systems to interpret and use the data. `kvlog` uses key-value-pairs as its underlying structure.
 
 ### Components
 
@@ -33,10 +36,10 @@ The format used by `kvlog` by default follows the defaults of the
 show examples of the log output
 
 ```
-ts=2019-08-16T12:58:22 level=info event=<started>
-ts=2019-08-16T12:58:34 level=info event=<request> method=<GET> url=</> status=200 duration=0.001s
-ts=2019-08-16T12:58:34 level=info event=<request> method=<GET> url=</favicon.ico> status=404 duration=0.000s
-ts=2019-08-16T12:58:35 level=info event=<request> method=<POST> url=</pdf> status=200 duration=0.009s
+ts=2019-08-16T12:58:22 level=info evt=started
+ts=2019-08-16T12:58:34 level=info evt=request duration=0.001s method=GET status=200 url=/
+ts=2019-08-16T12:58:34 level=info evt=request duration=0.000s method=GET status=404 url=/favicon.ico
+ts=2019-08-16T12:58:35 level=info evt=request duration=0.009s method=POST status=200 url=/pdf 
 ```
 
 ## Installation
@@ -63,7 +66,7 @@ import (
 func main () {
     // ...
 
-    kvlog.Info(kvlog.KV("event", "App started"))
+    kvlog.Info(kvlog.Event("started"), kvlog.KV("port", 8080))
 }
 ```
 
@@ -87,7 +90,7 @@ func main () {
 
     // ...
 
-    l.Info(kvlog.KV("event", "App started"))
+    l.Info(kvlog.KV("foo", "bar"))
 }
 ```
 
@@ -108,7 +111,7 @@ import (
 func main() {
     mux := http.NewServeMux()
     // ...
-	kvlog.Info(kvlog.KV("event", "started"))
+	kvlog.Info(kvlog.Event("started"))
 	http.ListenAndServe(":8000", kvlog.Middleware(kvlog.L, mux))
 }
 ```
