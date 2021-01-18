@@ -1,5 +1,7 @@
 # kvlog
 
+![CI Status][ci-img-url] [![Go Report Card][go-report-card-img-url]][go-report-card-url] [![Package Doc][package-doc-img-url]][package-doc-url]
+
 `kvlog` is a library which provides a structured logging facility for the go programming language(golang). 
 `kvlog`'s structure is based on key-value pairs.
 
@@ -154,3 +156,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
+
+[ci-img-url]: https://github.com/halimath/kvlog/workflows/CI/badge.svg
+[go-report-card-img-url]: https://goreportcard.com/badge/github.com/halimath/kvlog
+[go-report-card-url]: https://goreportcard.com/report/github.com/halimath/kvlog
+[package-doc-img-url]: https://img.shields.io/badge/GoDoc-Reference-blue.svg
+[package-doc-url]: https://pkg.go.dev/github.com/halimath/kvlog
+
+
