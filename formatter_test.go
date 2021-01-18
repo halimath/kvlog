@@ -1,9 +1,6 @@
-//
 // This file is part of kvlog.
 //
-// Copyright 2019, 2020 Alexander Metzner.
-//
-// Copyright 2019, 2020 Alexander Metzner.
+// Copyright 2019, 2020, 2021 Alexander Metzner.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
