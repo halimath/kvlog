@@ -133,6 +133,8 @@ func formatStringValue(w io.Writer, val string) (err error) {
 
 // --
 
+// TerminalFormatter is a formatter that outputs colored log messages
+// to be used on a terminal.
 var TerminalFormatter = FormatterFunc(formatMessageForTerminal)
 
 func formatMessageForTerminal(m Message, w io.Writer) (err error) {
