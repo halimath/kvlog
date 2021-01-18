@@ -147,33 +147,13 @@ func formatMessageForTerminal(m Message, w io.Writer) (err error) {
 		}
 
 		if p.Key == KeyTimestamp {
-			_, err = w.Write([]byte("\x1b[36m"))
-			if err != nil {
-				return
-			}
-			err = formatValue(p, w)
-			if err != nil {
-				return
-			}
-			_, err = w.Write([]byte("\x1b[0m"))
+			err = formatTimestamp(p, w)
 			if err != nil {
 				return
 			}
 
 		} else if p.Key == KeyLevel {
-			switch p.Value {
-			case LevelDebug:
-				_, err = w.Write([]byte("\x1b[90mDEBUG\x1b[0m"))
-			case LevelInfo:
-				_, err = w.Write([]byte(" \x1b[37mINFO\x1b[0m"))
-			case LevelWarn:
-				_, err = w.Write([]byte(" \x1b[30;103mWARN\x1b[0m"))
-			case LevelError:
-				_, err = w.Write([]byte("\x1b[37;41mERROR\x1b[0m"))
-			default:
-				panic(fmt.Sprintf("unexpected log level: %#v", p.Value))
-			}
-
+			err = formatLevel(p, w)
 			if err != nil {
 				return
 			}
@@ -196,6 +176,35 @@ func formatMessageForTerminal(m Message, w io.Writer) (err error) {
 
 	_, err = w.Write([]byte("\n"))
 
+	return
+}
+
+func formatLevel(p KVPair, w io.Writer) (err error) {
+	switch p.Value {
+	case LevelDebug:
+		_, err = w.Write([]byte("\x1b[90mDEBUG\x1b[0m"))
+	case LevelInfo:
+		_, err = w.Write([]byte(" \x1b[37mINFO\x1b[0m"))
+	case LevelWarn:
+		_, err = w.Write([]byte(" \x1b[30;103mWARN\x1b[0m"))
+	case LevelError:
+		_, err = w.Write([]byte("\x1b[37;41mERROR\x1b[0m"))
+	default:
+		panic(fmt.Sprintf("unexpected log level: %#v", p.Value))
+	}
+	return
+}
+
+func formatTimestamp(p KVPair, w io.Writer) (err error) {
+	_, err = w.Write([]byte("\x1b[36m"))
+	if err != nil {
+		return
+	}
+	err = formatValue(p, w)
+	if err != nil {
+		return
+	}
+	_, err = w.Write([]byte("\x1b[0m"))
 	return
 }
 
