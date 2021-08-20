@@ -68,13 +68,15 @@ import (
 func main () {
     // ...
 
-    kvlog.Info(kvlog.Event("started"), kvlog.KV("port", 8080))
+    kvlog.Info(kvlog.Evt("started"), kvlog.KV("port", 8080))
 }
 ```
 
-The module provides functions for all log level (`Debug`, `Info`, `Warn`, `Error`) as well as a configuration function
-for initializing the package level logger (i.e. configuring output and threshold as well as other filters). The default
-is to log everything of level `Info` or above to `stdout` using the default log format.
+The module provides functions for all log level (`Debug`, `Info`, `Warn`, `Error`) as well as 
+a configuration function for initializing the package level logger (i.e. configuring output 
+and threshold as well as other filters). The default is to log everything of level `Info` or 
+above to `stdout` using the console formatter (when connected to a terminal) or the JSON lines
+formatter (when connected to a file/stream).
 
 ### Logger instance
 
@@ -113,10 +115,23 @@ import (
 func main() {
     mux := http.NewServeMux()
     // ...
-	kvlog.Info(kvlog.Event("started"))
+	kvlog.Info(kvlog.Evt("started"))
 	http.ListenAndServe(":8000", kvlog.Middleware(kvlog.L, mux))
 }
 ```
+
+### Default Keys
+
+The following table lists the default keys used by `kvlog`.
+
+Key | Value Type | Description
+-- | -- | --
+`level` | `debug`; `info`; `warn`; `error`; `unknown` | The log level used when issuing the message
+`ts` | Timestamp in ISO8601 formatting style| The timestamp when the message was created formatted as a string in [ISO8601](https://www.iso.org/iso-8601-date-and-time-format.html).
+`evt` | case sensitive string | A descriptive token of the event that caused this log msg.
+`err` | string | A free form string containing a textual description of an error.
+`msg` | string | A free form string containing a human readable msg.
+`dur` | float | A duration measured in seconds as as floating point number.
 
 # Changelog
 

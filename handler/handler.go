@@ -15,10 +15,14 @@
 // limitations under the License.
 //
 
-package kvlog
+package handler
 
 import (
 	"io"
+
+	"github.com/halimath/kvlog/formatter"
+	"github.com/halimath/kvlog/msg"
+	"github.com/halimath/kvlog/output"
 )
 
 // Filter defines the interface for types that filter
@@ -27,23 +31,23 @@ type Filter interface {
 	// Filter filters the given message m and returns
 	// either a message (which may be m) to be handled
 	// or nil if the given message should be dropped.
-	Filter(m Message) Message
+	Filter(m msg.Message) msg.Message
 }
 
 // FilterFunc is a wrapper type implementing Filter
 // that wraps a plain function.
-type FilterFunc func(m Message) Message
+type FilterFunc func(m msg.Message) msg.Message
 
 // Filter just calls f to perform filtering.
-func (f FilterFunc) Filter(m Message) Message {
+func (f FilterFunc) Filter(m msg.Message) msg.Message {
 	return f(m)
 }
 
 // Threshold is a factory for a Filter that
 // drops messages if their level is less
 // then the given threshold.
-func Threshold(threshold Level) Filter {
-	return FilterFunc(func(m Message) Message {
+func Threshold(threshold msg.Level) Filter {
+	return FilterFunc(func(m msg.Message) msg.Message {
 		if m.Level() >= threshold {
 			return m
 		}
@@ -55,13 +59,13 @@ func Threshold(threshold Level) Filter {
 
 // Handler implements a threshold
 type Handler struct {
-	formatter Formatter
-	output    Output
+	formatter formatter.Interface
+	output    output.Output
 	filter    []Filter
 }
 
-// Deliver performs the delivery of the given message.
-func (h *Handler) Deliver(m Message) {
+// Deliver performs the delivery of the given msg.
+func (h *Handler) Deliver(m msg.Message) {
 	for _, f := range h.filter {
 		m = f.Filter(m)
 		if m == nil {
@@ -80,8 +84,8 @@ func (h *Handler) Close() {
 	}
 }
 
-// NewHandler creates a new Handler using the provided values.
-func NewHandler(formatter Formatter, output Output, filter ...Filter) *Handler {
+// New creates a new Handler using the provided values.
+func New(formatter formatter.Interface, output output.Output, filter ...Filter) *Handler {
 	filterToUse := make([]Filter, len(filter))
 	copy(filterToUse, filter)
 

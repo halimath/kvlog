@@ -20,6 +20,8 @@ package kvlog
 import (
 	"net/http"
 	"time"
+
+	"github.com/halimath/kvlog/msg"
 )
 
 type accessLogMW struct {
@@ -55,8 +57,8 @@ func (l *accessLogMW) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	l.delegate.ServeHTTP(wrapper, r)
 
-	requestTime := time.Now().Sub(startTime)
-	l.logger.Info(Event("request"), KV("method", r.Method), KV("url", r.URL), KV("status", wrapper.statusCode), KV("duration", requestTime))
+	requestTime := time.Since(startTime)
+	l.logger.Info(msg.Evt("request"), msg.KV("method", r.Method), msg.KV("url", r.URL), msg.KV("status", wrapper.statusCode), msg.Dur(requestTime))
 }
 
 // Middleware returns a http.Handler that acts as an access log middleware.

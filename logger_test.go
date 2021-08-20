@@ -22,14 +22,18 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/halimath/kvlog/formatter/kvformat"
+	"github.com/halimath/kvlog/handler"
+	"github.com/halimath/kvlog/msg"
 )
 
 func TestLogger(t *testing.T) {
 	var output1, output2 bytes.Buffer
 
 	l := NewLogger(
-		NewHandler(KVFormatter, &output1, Threshold(LevelDebug)),
-		NewHandler(KVFormatter, &output2, Threshold(LevelError)),
+		handler.New(kvformat.Formatter, &output1, handler.Threshold(msg.LevelDebug)),
+		handler.New(kvformat.Formatter, &output2, handler.Threshold(msg.LevelError)),
 	)
 
 	now := time.Now().Format("2006-01-02T15:04:05")
@@ -41,17 +45,17 @@ func TestLogger(t *testing.T) {
 
 	l.Close()
 
-	exp1 := fmt.Sprintf(`ts=%[1]s level=debug foo=bar
-ts=%[1]s level=info foo=bar
-ts=%[1]s level=warn foo=bar
-ts=%[1]s level=error foo=bar
+	exp1 := fmt.Sprintf(`ts=%[1]s lvl=debug foo=bar
+ts=%[1]s lvl=info foo=bar
+ts=%[1]s lvl=warn foo=bar
+ts=%[1]s lvl=error foo=bar
 `, now)
 
 	if output1.String() != exp1 {
 		t.Errorf("expected '%s' but got '%s'", exp1, output1.String())
 	}
 
-	exp2 := fmt.Sprintf("ts=%[1]s level=error foo=bar\n", now)
+	exp2 := fmt.Sprintf("ts=%[1]s lvl=error foo=bar\n", now)
 	if output2.String() != exp2 {
 		t.Errorf("expected '%s' but got '%s'", exp2, output2.String())
 	}

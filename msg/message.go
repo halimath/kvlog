@@ -15,9 +15,11 @@
 // limitations under the License.
 //
 
-package kvlog
+// Package msg contains types and functions that implement log messages.
+package msg
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -70,11 +72,43 @@ func KV(key string, value interface{}) KVPair {
 	}
 }
 
-// Event is a factory method for a KVPair that uses the default event key.
+// Event creates a KVPair for the "evt" key.
+//
+// Deprecated: Event is a deprecated alias for evt.
 func Event(value interface{}) KVPair {
+	return Evt(value)
+}
+
+// Evt creates a KVpair with the "evt" key.
+func Evt(value interface{}) KVPair {
 	return KVPair{
 		Key:   KeyEvent,
 		Value: value,
+	}
+}
+
+// Err creates a KVPair with the "err" key.
+func Err(err error) KVPair {
+	return KVPair{
+		Key:   KeyError,
+		Value: err.Error(),
+	}
+}
+
+// Msg creates a KVPair with the "msg" key. It formats the message using
+// fmt.Sprintf.
+func Msg(format string, args ...interface{}) KVPair {
+	return KVPair{
+		Key:   KeyMessage,
+		Value: fmt.Sprintf(format, args...),
+	}
+}
+
+// Dur creates a pair with the "dur" key containing an operation's duration.
+func Dur(d time.Duration) KVPair {
+	return KVPair{
+		Key:   KeyDuration,
+		Value: d,
 	}
 }
 
@@ -82,13 +116,22 @@ func Event(value interface{}) KVPair {
 
 const (
 	// KeyLevel defines the message key containing the message's level.
-	KeyLevel = "level"
+	KeyLevel = "lvl"
 
 	// KeyTimestamp defines the message key containing the message's timestamp.
 	KeyTimestamp = "ts"
 
 	// KeyEvent defines the default message key containing the message's event.
 	KeyEvent = "evt"
+
+	// KeyError defines the default message key containing an error.
+	KeyError = "err"
+
+	// KeyMessage defines the default message key containing a textual msg.
+	KeyMessage = "msg"
+
+	// KeyDuration defines the default message key containing a duration measured in seconds.
+	KeyDuration = "dur"
 )
 
 // Message represents a single log message expressed as an ordered list of key value pairs
