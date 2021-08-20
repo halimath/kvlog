@@ -36,7 +36,7 @@ func TestLogger(t *testing.T) {
 		handler.New(kvformat.Formatter, &output2, handler.Threshold(msg.LevelError)),
 	)
 
-	now := time.Now().Format("2006-01-02T15:04:05")
+	now := time.Now().Format(time.RFC3339)
 
 	l.Debug(KV("foo", "bar"))
 	l.Info(KV("foo", "bar"))

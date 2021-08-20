@@ -44,7 +44,7 @@ func TestPackage(t *testing.T) {
 	// Run Init again to close the old handler
 	kvlog.Init(handler.New(kvformat.Formatter, &buf, handler.Threshold(msg.LevelWarn)))
 
-	exp := fmt.Sprintf("ts=%s lvl=warn evt=test foo=bar\nts=%s lvl=error evt=test foo=bar\n", now.Format("2006-01-02T15:04:05"), now.Format("2006-01-02T15:04:05"))
+	exp := fmt.Sprintf("ts=%s lvl=warn evt=test foo=bar\nts=%s lvl=error evt=test foo=bar\n", now.Format(time.RFC3339), now.Format(time.RFC3339))
 
 	if buf.String() != exp {
 		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
