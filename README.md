@@ -86,15 +86,21 @@ A more advanced usage involves a dedicated `Logger` instance which can be used i
 package main
 
 import (
-    "github.com/halimath/kvlog"
+	"os"
+
+	"github.com/halimath/kvlog"
+	"github.com/halimath/kvlog/formatter/kvformat"
+	"github.com/halimath/kvlog/handler"
+	"github.com/halimath/kvlog/msg"
 )
 
 func main () {
-    l := kvlog.NewLogger(kvlog.NewHandler(kvlog.KVFormatter, kvlog.Stdout(), kvlog.Threshold(kvlog.LevelWarn)))
+	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, handler.Threshold(msg.LevelInfo)))
+
+	name, _ := os.Hostname()
+	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))
 
     // ...
-
-    l.Info(kvlog.KV("foo", "bar"))
 }
 ```
 
@@ -127,7 +133,7 @@ The following table lists the default keys used by `kvlog`.
 Key | Value Type | Description
 -- | -- | --
 `level` | `debug`; `info`; `warn`; `error`; `unknown` | The log level used when issuing the message
-`ts` | Timestamp in ISO8601 formatting style| The timestamp when the message was created formatted as a string in [ISO8601](https://www.iso.org/iso-8601-date-and-time-format.html).
+`ts` | Timestamp in RFC3339 format| The timestamp when the message was created formatted as a string in [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339).
 `evt` | case sensitive string | A descriptive token of the event that caused this log msg.
 `err` | string | A free form string containing a textual description of an error.
 `msg` | string | A free form string containing a human readable msg.
