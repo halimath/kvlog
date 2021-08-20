@@ -50,6 +50,8 @@ ts=2019-08-16T12:58:35 level=info evt=request duration=0.009s method=POST status
 $ go get -u github.com/halimath/kvlog
 ```
 
+`kvlog` requires Go >= 1.11 and has no dependencies except for the standard library.
+
 ## Usage
 
 `kvlog` can be used in different ways. 
