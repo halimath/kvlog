@@ -20,6 +20,7 @@ package kvlog_test
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -50,7 +51,14 @@ func TestPackage(t *testing.T) {
 	}
 }
 
-func Example() {
+func Example_packageFunctions() {
 	kvlog.Debug(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
 	kvlog.Info(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+}
+
+func Example_customLogger() {
+	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, handler.Threshold(msg.LevelInfo)))
+
+	name, _ := os.Hostname()
+	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))
 }
