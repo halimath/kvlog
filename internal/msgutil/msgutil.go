@@ -57,7 +57,7 @@ func (s SortByKey) Less(i, j int) bool {
 func FormatValue(k msg.KVPair, w io.Writer) (err error) {
 	switch x := k.Value.(type) {
 	case time.Time:
-		_, err = w.Write([]byte(x.Format("2006-01-02T15:04:05")))
+		_, err = w.Write([]byte(x.Format(time.RFC3339)))
 	case time.Duration:
 		_, err = fmt.Fprintf(w, "%.3fs", x.Seconds())
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:

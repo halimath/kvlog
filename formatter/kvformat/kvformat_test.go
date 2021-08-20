@@ -30,7 +30,7 @@ func TestKVFormatter(t *testing.T) {
 	now := time.Now()
 
 	table := map[*msg.Message]string{
-		m(msg.LevelInfo, msg.KV("spam", "eggs"), msg.KV("foo", "bar")): fmt.Sprintf("ts=%s lvl=info foo=bar spam=eggs\n", now.Format("2006-01-02T15:04:05")),
+		m(msg.LevelInfo, msg.KV("spam", "eggs"), msg.KV("foo", "bar")): fmt.Sprintf("ts=%s lvl=info foo=bar spam=eggs\n", now.Format(time.RFC3339)),
 	}
 
 	for msg, exp := range table {
@@ -51,7 +51,7 @@ func TestFormatPair(t *testing.T) {
 		msg.KV("foo", 19.3):          "foo=19.300",
 		msg.KV("foo", msg.LevelInfo): "foo=info",
 		msg.KV("foo", "Hello world"): "foo=<Hello world>",
-		msg.KV("foo", ts):            fmt.Sprintf("foo=%s", ts.Format("2006-01-02T15:04:05")),
+		msg.KV("foo", ts):            fmt.Sprintf("foo=%s", ts.Format(time.RFC3339)),
 		msg.KV("foo", 2*time.Second): "foo=2.000s",
 	}
 

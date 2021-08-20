@@ -30,10 +30,10 @@ func TestTerminalFormatter(t *testing.T) {
 	now := time.Now()
 
 	table := map[*msg.Message]string{
-		m(msg.LevelDebug, msg.KV("spam", "eggs"), msg.KV("foo", "bar")): fmt.Sprintf("\x1b[36m%s\x1b[0m \x1b[90mDEBUG\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format("2006-01-02T15:04:05")),
-		m(msg.LevelInfo, msg.KV("spam", "eggs"), msg.KV("foo", "bar")):  fmt.Sprintf("\x1b[36m%s\x1b[0m  \x1b[37mINFO\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format("2006-01-02T15:04:05")),
-		m(msg.LevelWarn, msg.KV("spam", "eggs"), msg.KV("foo", "bar")):  fmt.Sprintf("\x1b[36m%s\x1b[0m  \x1b[30;103mWARN\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format("2006-01-02T15:04:05")),
-		m(msg.LevelError, msg.KV("spam", "eggs"), msg.KV("foo", "bar")): fmt.Sprintf("\x1b[36m%s\x1b[0m \x1b[37;41mERROR\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format("2006-01-02T15:04:05")),
+		m(msg.LevelDebug, msg.KV("spam", "eggs"), msg.KV("foo", "bar")): fmt.Sprintf("\x1b[36m%s\x1b[0m \x1b[90mDEBUG\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format(time.RFC3339)),
+		m(msg.LevelInfo, msg.KV("spam", "eggs"), msg.KV("foo", "bar")):  fmt.Sprintf("\x1b[36m%s\x1b[0m  \x1b[37mINFO\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format(time.RFC3339)),
+		m(msg.LevelWarn, msg.KV("spam", "eggs"), msg.KV("foo", "bar")):  fmt.Sprintf("\x1b[36m%s\x1b[0m  \x1b[30;103mWARN\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format(time.RFC3339)),
+		m(msg.LevelError, msg.KV("spam", "eggs"), msg.KV("foo", "bar")): fmt.Sprintf("\x1b[36m%s\x1b[0m \x1b[37;41mERROR\x1b[0m \x1b[90mfoo=\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam=\x1b[0m\x1b[97meggs\x1b[0m\n", now.Format(time.RFC3339)),
 	}
 
 	for msg, exp := range table {
