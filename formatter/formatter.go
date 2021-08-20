@@ -15,31 +15,26 @@
 // limitations under the License.
 //
 
-package kvlog
+package formatter
 
 import (
-	"testing"
+	"io"
+
+	"github.com/halimath/kvlog/msg"
 )
 
-func TestLevelString(t *testing.T) {
-	table := map[Level]string{
-		LevelDebug: "debug",
-		LevelInfo:  "info",
-		LevelWarn:  "warn",
-		LevelError: "error",
-	}
-
-	for level, expected := range table {
-		actual := level.String()
-		if actual != expected {
-			t.Errorf("expected '%s' but got '%s'", expected, actual)
-		}
-	}
+// Interface defines the interface implemented by all
+// message formatters.
+type Interface interface {
+	// Formats the given message into a slice of bytes.
+	Format(m msg.Message, w io.Writer) error
 }
 
-func TestMessageLevel(t *testing.T) {
-	m := NewMessage(LevelInfo, KV("foo", "bar"))
-	if m.Level() != LevelInfo {
-		t.Errorf("expected info but got %s", m.Level())
-	}
+// FormatterFunc is a converter type that allows using
+// a plain function as a Formatter.
+type FormatterFunc func(m msg.Message, w io.Writer) error
+
+// Format simply calls ff.
+func (ff FormatterFunc) Format(m msg.Message, w io.Writer) error {
+	return ff(m, w)
 }

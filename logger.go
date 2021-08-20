@@ -17,25 +17,30 @@
 
 package kvlog
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/halimath/kvlog/handler"
+	"github.com/halimath/kvlog/msg"
+)
 
 // Logger implements a logger component.
 type Logger struct {
-	handler []chan Message
-	wg      sync.WaitGroup
+	handlers []chan msg.Message
+	wg       sync.WaitGroup
 }
 
 // NewLogger constructs a new Logger and returns a pointer to it.
-func NewLogger(handler ...*Handler) *Logger {
+func NewLogger(handlers ...*handler.Handler) *Logger {
 	l := Logger{
-		handler: make([]chan Message, 0, len(handler)),
+		handlers: make([]chan msg.Message, 0, len(handlers)),
 	}
 
-	for _, h := range handler {
-		c := make(chan Message, 10)
+	for _, h := range handlers {
+		c := make(chan msg.Message, 10)
 
 		l.wg.Add(1)
-		go func(c chan Message, h *Handler) {
+		go func(c chan msg.Message, h *handler.Handler) {
 			defer l.wg.Done()
 			for m := range c {
 				h.Deliver(m)
@@ -43,15 +48,15 @@ func NewLogger(handler ...*Handler) *Logger {
 			h.Close()
 		}(c, h)
 
-		l.handler = append(l.handler, c)
+		l.handlers = append(l.handlers, c)
 	}
 
 	return &l
 }
 
-// Log logs the given message.
-func (l *Logger) Log(m Message) {
-	for _, c := range l.handler {
+// Log logs the given msg.
+func (l *Logger) Log(m msg.Message) {
+	for _, c := range l.handlers {
 		c <- m
 	}
 }
@@ -59,28 +64,28 @@ func (l *Logger) Log(m Message) {
 // Close closes the handlers registered to this logger and waits for the goroutines
 // to finish.
 func (l *Logger) Close() {
-	for _, c := range l.handler {
+	for _, c := range l.handlers {
 		close(c)
 	}
 	l.wg.Wait()
 }
 
 // Debug logs a message with level Debug.
-func (l *Logger) Debug(pairs ...KVPair) {
-	l.Log(NewMessage(LevelDebug, pairs...))
+func (l *Logger) Debug(pairs ...msg.KVPair) {
+	l.Log(msg.NewMessage(msg.LevelDebug, pairs...))
 }
 
 // Info logs a message with level Info.
-func (l *Logger) Info(pairs ...KVPair) {
-	l.Log(NewMessage(LevelInfo, pairs...))
+func (l *Logger) Info(pairs ...msg.KVPair) {
+	l.Log(msg.NewMessage(msg.LevelInfo, pairs...))
 }
 
 // Warn logs a message with level Warn.
-func (l *Logger) Warn(pairs ...KVPair) {
-	l.Log(NewMessage(LevelWarn, pairs...))
+func (l *Logger) Warn(pairs ...msg.KVPair) {
+	l.Log(msg.NewMessage(msg.LevelWarn, pairs...))
 }
 
 // Error logs a message with level Error.
-func (l *Logger) Error(pairs ...KVPair) {
-	l.Log(NewMessage(LevelError, pairs...))
+func (l *Logger) Error(pairs ...msg.KVPair) {
+	l.Log(msg.NewMessage(msg.LevelError, pairs...))
 }

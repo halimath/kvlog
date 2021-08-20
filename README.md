@@ -50,6 +50,8 @@ ts=2019-08-16T12:58:35 level=info evt=request duration=0.009s method=POST status
 $ go get -u github.com/halimath/kvlog
 ```
 
+`kvlog` requires Go >= 1.11 and has no dependencies except for the standard library.
+
 ## Usage
 
 `kvlog` can be used in different ways. 
@@ -68,13 +70,15 @@ import (
 func main () {
     // ...
 
-    kvlog.Info(kvlog.Event("started"), kvlog.KV("port", 8080))
+    kvlog.Info(kvlog.Evt("started"), kvlog.KV("port", 8080))
 }
 ```
 
-The module provides functions for all log level (`Debug`, `Info`, `Warn`, `Error`) as well as a configuration function
-for initializing the package level logger (i.e. configuring output and threshold as well as other filters). The default
-is to log everything of level `Info` or above to `stdout` using the default log format.
+The module provides functions for all log level (`Debug`, `Info`, `Warn`, `Error`) as well as 
+a configuration function for initializing the package level logger (i.e. configuring output 
+and threshold as well as other filters). The default is to log everything of level `Info` or 
+above to `stdout` using the console formatter (when connected to a terminal) or the JSON lines
+formatter (when connected to a file/stream).
 
 ### Logger instance
 
@@ -84,15 +88,21 @@ A more advanced usage involves a dedicated `Logger` instance which can be used i
 package main
 
 import (
-    "github.com/halimath/kvlog"
+	"os"
+
+	"github.com/halimath/kvlog"
+	"github.com/halimath/kvlog/formatter/kvformat"
+	"github.com/halimath/kvlog/handler"
+	"github.com/halimath/kvlog/msg"
 )
 
 func main () {
-    l := kvlog.NewLogger(kvlog.NewHandler(kvlog.KVFormatter, kvlog.Stdout(), kvlog.Threshold(kvlog.LevelWarn)))
+	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, handler.Threshold(msg.LevelInfo)))
+
+	name, _ := os.Hostname()
+	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))
 
     // ...
-
-    l.Info(kvlog.KV("foo", "bar"))
 }
 ```
 
@@ -113,10 +123,23 @@ import (
 func main() {
     mux := http.NewServeMux()
     // ...
-	kvlog.Info(kvlog.Event("started"))
+	kvlog.Info(kvlog.Evt("started"))
 	http.ListenAndServe(":8000", kvlog.Middleware(kvlog.L, mux))
 }
 ```
+
+### Default Keys
+
+The following table lists the default keys used by `kvlog`.
+
+Key | Value Type | Description
+-- | -- | --
+`level` | `debug`; `info`; `warn`; `error`; `unknown` | The log level used when issuing the message
+`ts` | Timestamp in RFC3339 format| The timestamp when the message was created formatted as a string in [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339).
+`evt` | case sensitive string | A descriptive token of the event that caused this log msg.
+`err` | string | A free form string containing a textual description of an error.
+`msg` | string | A free form string containing a human readable msg.
+`dur` | float | A duration measured in seconds as as floating point number.
 
 # Changelog
 

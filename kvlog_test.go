@@ -20,34 +20,45 @@ package kvlog_test
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/halimath/kvlog"
+	"github.com/halimath/kvlog/formatter/kvformat"
+	"github.com/halimath/kvlog/handler"
+	"github.com/halimath/kvlog/msg"
 )
 
 func TestPackage(t *testing.T) {
 	var buf bytes.Buffer
 
-	kvlog.Init(kvlog.NewHandler(kvlog.KVFormatter, &buf, kvlog.Threshold(kvlog.LevelWarn)))
+	kvlog.Init(handler.New(kvformat.Formatter, &buf, handler.Threshold(msg.LevelWarn)))
 
 	now := time.Now()
-	kvlog.Debug(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
-	kvlog.Info(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
-	kvlog.Warn(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
-	kvlog.Error(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
+	kvlog.Debug(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+	kvlog.Info(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+	kvlog.Warn(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+	kvlog.Error(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
 
 	// Run Init again to close the old handler
-	kvlog.Init(kvlog.NewHandler(kvlog.KVFormatter, &buf, kvlog.Threshold(kvlog.LevelWarn)))
+	kvlog.Init(handler.New(kvformat.Formatter, &buf, handler.Threshold(msg.LevelWarn)))
 
-	exp := fmt.Sprintf("ts=%s level=warn event=test foo=bar\nts=%s level=error event=test foo=bar\n", now.Format("2006-01-02T15:04:05"), now.Format("2006-01-02T15:04:05"))
+	exp := fmt.Sprintf("ts=%s lvl=warn evt=test foo=bar\nts=%s lvl=error evt=test foo=bar\n", now.Format(time.RFC3339), now.Format(time.RFC3339))
 
 	if buf.String() != exp {
 		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
 	}
 }
 
-func Example() {
-	kvlog.Debug(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
-	kvlog.Info(kvlog.KV("event", "test"), kvlog.KV("foo", "bar"))
+func Example_packageFunctions() {
+	kvlog.Debug(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+	kvlog.Info(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+}
+
+func Example_customLogger() {
+	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, handler.Threshold(msg.LevelInfo)))
+
+	name, _ := os.Hostname()
+	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))
 }
