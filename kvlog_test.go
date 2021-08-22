@@ -28,6 +28,7 @@ import (
 	"github.com/halimath/kvlog/filter"
 	"github.com/halimath/kvlog/formatter/kvformat"
 	"github.com/halimath/kvlog/handler"
+	"github.com/halimath/kvlog/logger"
 	"github.com/halimath/kvlog/msg"
 )
 
@@ -58,7 +59,7 @@ func Example_packageFunctions() {
 }
 
 func Example_customLogger() {
-	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, filter.Threshold(msg.LevelInfo)))
+	l := logger.New(handler.New(kvformat.Formatter, os.Stdout, filter.Threshold(msg.LevelInfo)))
 
 	name, _ := os.Hostname()
 	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))

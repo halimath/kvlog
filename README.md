@@ -23,14 +23,17 @@ A `Message` is produced by the client. Every `Message` consists of `Pair`s each 
 a single key-value-pair. `kvlog` provides a convenient and idiomatic API to create `Pair`s and
 `Message`s.
 
-The `Message` is then given to a `Logger`. A `Logger` may augment the message with additional
-`Pair`s. It's common for a `Logger` to add at least a `level` and a `ts` (timestamp) `Pair`, but
-`Logger`s may add other `Pair`s.
+The `Message` is then given to a logger, an instance of `logger.Interface`. A logger may augment the message with additional
+`Pair`s. It's common for a `Logger` to add at least a `level` and a `ts` (timestamp) `Pair`, but loggers may add other `Pair`s.
 
-Every `Logger` uses a set of `Handler`s. A `Handler` is responsible for
+Every logger uses a set of `Handler`s. A `Handler` is responsible for
 * filtering `Message`s i.e. discarding them based on a level threshold
-* formatting the `Message` using a `Formatter`
-* delivering the `Message` using an `Output`
+* formatting the `Message` using a formatter - an instance of `formatter.Interface`
+* delivering the `Message` using an output - an instance of `output.Interface`
+
+Loggers may be nested. Nesting a logger allows setting some default pairs to be added to every message emitted by a
+nested logger. A typical scenario sets the _category_ pair for a nested logger. A nested logger has no handler on
+its own but resorts to the _parent logger_ for actually delivering the message. Loggers may be nested at any depth.
 
 ### Log Format
 
@@ -119,11 +122,12 @@ import (
 	"github.com/halimath/kvlog/filter"
 	"github.com/halimath/kvlog/formatter/kvformat"
 	"github.com/halimath/kvlog/handler"
+	"github.com/halimath/kvlog/logger"
 	"github.com/halimath/kvlog/msg"
 )
 
 func main () {
-	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, filter.Threshold(msg.LevelInfo)))
+	l := logger.New(handler.New(kvformat.Formatter, os.Stdout, filter.Threshold(msg.LevelInfo)))
 
 	name, _ := os.Hostname()
 	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))
@@ -166,6 +170,7 @@ Key | Value Type | Description
 `err` | string | A free form string containing a textual description of an error.
 `msg` | string | A free form string containing a human readable msg.
 `dur` | float | A duration measured in seconds as as floating point number.
+`cat` | string | A string describing the message's category, such as `http`, `service`, `persistence`, ...
 
 # Changelog
 

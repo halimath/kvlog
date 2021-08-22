@@ -112,6 +112,14 @@ func Dur(d time.Duration) KVPair {
 	}
 }
 
+// Cat creates a pair with the "cat" key containing a message's category.
+func Cat(cat string) KVPair {
+	return KVPair{
+		Key:   KeyCategory,
+		Value: cat,
+	}
+}
+
 // --
 
 const (
@@ -132,6 +140,9 @@ const (
 
 	// KeyDuration defines the default message key containing a duration measured in seconds.
 	KeyDuration = "dur"
+
+	// KeyCategory defines the default message key containing a message's category.
+	KeyCategory = "cat"
 )
 
 // Message represents a single log message expressed as an ordered list of key value pairs

@@ -21,11 +21,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/halimath/kvlog/logger"
 	"github.com/halimath/kvlog/msg"
 )
 
 type accessLogMW struct {
-	logger   *Logger
+	logger   logger.Interface
 	delegate http.Handler
 }
 
@@ -62,9 +63,9 @@ func (l *accessLogMW) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Middleware returns a http.Handler that acts as an access log middleware.
-func Middleware(l *Logger, h http.Handler) http.Handler {
+func Middleware(l logger.Interface, h http.Handler) http.Handler {
 	return &accessLogMW{
-		logger:   l,
+		logger:   logger.WithCategory(l, "http"),
 		delegate: h,
 	}
 }

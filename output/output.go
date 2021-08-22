@@ -22,9 +22,9 @@ import (
 	"os"
 )
 
-// Output defines the interface that must be implemented by types
+// Interface defines the interface that must be implemented by types
 // that handle output.
-type Output interface {
+type Interface interface {
 	io.Writer
 }
 
@@ -36,15 +36,15 @@ func (n *nonClosingWriterOutput) Close() error {
 	return nil
 }
 
-// Stdout returns an Output that writes the STDOUT but ignores any request to close the stream.
-func Stdout() Output {
+// Stdout returns an output that writes the STDOUT but ignores any request to close the stream.
+func Stdout() Interface {
 	return &nonClosingWriterOutput{
 		Writer: os.Stdout,
 	}
 }
 
 // Stderr returns an Output that writes the STDOUT but ignores any request to close the stream.
-func Stderr() Output {
+func Stderr() Interface {
 	return &nonClosingWriterOutput{
 		Writer: os.Stderr,
 	}

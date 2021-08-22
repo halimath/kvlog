@@ -44,6 +44,12 @@ func (s SortByKey) Less(i, j int) bool {
 	if s[j].Key == msg.KeyLevel {
 		return false
 	}
+	if s[i].Key == msg.KeyCategory {
+		return true
+	}
+	if s[j].Key == msg.KeyCategory {
+		return false
+	}
 	if s[i].Key == msg.KeyEvent {
 		return true
 	}
