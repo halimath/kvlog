@@ -15,7 +15,7 @@
 // limitations under the License.
 //
 
-package kvlog
+package logger
 
 import (
 	"bytes"
@@ -29,20 +29,20 @@ import (
 	"github.com/halimath/kvlog/msg"
 )
 
-func TestLogger(t *testing.T) {
+func TestRoot(t *testing.T) {
 	var output1, output2 bytes.Buffer
 
-	l := NewLogger(
+	l := New(
 		handler.New(kvformat.Formatter, &output1, filter.Threshold(msg.LevelDebug)),
 		handler.New(kvformat.Formatter, &output2, filter.Threshold(msg.LevelError)),
 	)
 
 	now := time.Now().Format(time.RFC3339)
 
-	l.Debug(KV("foo", "bar"))
-	l.Info(KV("foo", "bar"))
-	l.Warn(KV("foo", "bar"))
-	l.Error(KV("foo", "bar"))
+	l.Debug(msg.KV("foo", "bar"))
+	l.Info(msg.KV("foo", "bar"))
+	l.Warn(msg.KV("foo", "bar"))
+	l.Error(msg.KV("foo", "bar"))
 
 	l.Close()
 
@@ -60,5 +60,31 @@ ts=%[1]s lvl=error foo=bar
 	if output2.String() != exp2 {
 		t.Errorf("expected '%s' but got '%s'", exp2, output2.String())
 	}
+}
 
+func TestNested(t *testing.T) {
+	var output1 bytes.Buffer
+
+	root := New(handler.New(kvformat.Formatter, &output1, filter.Threshold(msg.LevelDebug)))
+
+	l := WithCategory(root, "test")
+
+	now := time.Now().Format(time.RFC3339)
+
+	l.Debug(msg.KV("foo", "bar"))
+	l.Info(msg.KV("foo", "bar"))
+	l.Warn(msg.KV("foo", "bar"))
+	l.Error(msg.KV("foo", "bar"))
+
+	root.Close()
+
+	exp := fmt.Sprintf(`ts=%[1]s lvl=debug cat=test foo=bar
+ts=%[1]s lvl=info cat=test foo=bar
+ts=%[1]s lvl=warn cat=test foo=bar
+ts=%[1]s lvl=error cat=test foo=bar
+`, now)
+
+	if output1.String() != exp {
+		t.Errorf("expected '%s' but got '%s'", exp, output1.String())
+	}
 }

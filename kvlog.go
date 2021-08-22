@@ -28,13 +28,14 @@ import (
 	"github.com/halimath/kvlog/formatter/kvformat"
 	"github.com/halimath/kvlog/formatter/terminal"
 	"github.com/halimath/kvlog/handler"
+	"github.com/halimath/kvlog/logger"
 	"github.com/halimath/kvlog/msg"
 	"github.com/halimath/kvlog/output"
 )
 
 // L is the Logger instance used by package level functions.
 // Use this logger as a convenience.
-var L *Logger
+var L logger.Interface
 
 func init() {
 	var f formatter.Interface
@@ -53,7 +54,7 @@ func Init(handler ...*handler.Handler) {
 	if L != nil {
 		L.Close()
 	}
-	L = NewLogger(handler...)
+	L = logger.New(handler...)
 }
 
 // Debug emits a log message of level debug.

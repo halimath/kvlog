@@ -29,7 +29,7 @@ import (
 // Handler implements a threshold
 type Handler struct {
 	formatter formatter.Interface
-	output    output.Output
+	output    output.Interface
 	filter    []filter.Interface
 }
 
@@ -54,7 +54,7 @@ func (h *Handler) Close() {
 }
 
 // New creates a new Handler using the provided values.
-func New(formatter formatter.Interface, output output.Output, filters ...filter.Interface) *Handler {
+func New(formatter formatter.Interface, output output.Interface, filters ...filter.Interface) *Handler {
 	filterToUse := make([]filter.Interface, len(filters))
 	copy(filterToUse, filters)
 
