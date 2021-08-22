@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/halimath/kvlog"
+	"github.com/halimath/kvlog/filter"
 	"github.com/halimath/kvlog/formatter/kvformat"
 	"github.com/halimath/kvlog/handler"
 	"github.com/halimath/kvlog/msg"
@@ -33,7 +34,7 @@ import (
 func TestPackage(t *testing.T) {
 	var buf bytes.Buffer
 
-	kvlog.Init(handler.New(kvformat.Formatter, &buf, handler.Threshold(msg.LevelWarn)))
+	kvlog.Init(handler.New(kvformat.Formatter, &buf, filter.Threshold(msg.LevelWarn)))
 
 	now := time.Now()
 	kvlog.Debug(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
@@ -42,7 +43,7 @@ func TestPackage(t *testing.T) {
 	kvlog.Error(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
 
 	// Run Init again to close the old handler
-	kvlog.Init(handler.New(kvformat.Formatter, &buf, handler.Threshold(msg.LevelWarn)))
+	kvlog.Init(handler.New(kvformat.Formatter, &buf, filter.Threshold(msg.LevelWarn)))
 
 	exp := fmt.Sprintf("ts=%s lvl=warn evt=test foo=bar\nts=%s lvl=error evt=test foo=bar\n", now.Format(time.RFC3339), now.Format(time.RFC3339))
 
@@ -57,7 +58,7 @@ func Example_packageFunctions() {
 }
 
 func Example_customLogger() {
-	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, handler.Threshold(msg.LevelInfo)))
+	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, filter.Threshold(msg.LevelInfo)))
 
 	name, _ := os.Hostname()
 	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))

@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/halimath/kvlog/filter"
 	"github.com/halimath/kvlog/formatter"
 	"github.com/halimath/kvlog/formatter/kvformat"
 	"github.com/halimath/kvlog/formatter/terminal"
@@ -42,7 +43,7 @@ func init() {
 	} else {
 		f = kvformat.Formatter
 	}
-	Init(handler.New(f, output.Stdout(), handler.Threshold(msg.LevelInfo)))
+	Init(handler.New(f, output.Stdout(), filter.Threshold(msg.LevelInfo)))
 }
 
 // Init initializes the package global logger to a new logger

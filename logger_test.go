@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/halimath/kvlog/filter"
 	"github.com/halimath/kvlog/formatter/kvformat"
 	"github.com/halimath/kvlog/handler"
 	"github.com/halimath/kvlog/msg"
@@ -32,8 +33,8 @@ func TestLogger(t *testing.T) {
 	var output1, output2 bytes.Buffer
 
 	l := NewLogger(
-		handler.New(kvformat.Formatter, &output1, handler.Threshold(msg.LevelDebug)),
-		handler.New(kvformat.Formatter, &output2, handler.Threshold(msg.LevelError)),
+		handler.New(kvformat.Formatter, &output1, filter.Threshold(msg.LevelDebug)),
+		handler.New(kvformat.Formatter, &output2, filter.Threshold(msg.LevelError)),
 	)
 
 	now := time.Now().Format(time.RFC3339)
