@@ -28,20 +28,45 @@ The `Message` is then given to a `Logger`. A `Logger` may augment the message wi
 `Logger`s may add other `Pair`s.
 
 Every `Logger` uses a set of `Handler`s. A `Handler` is responsible for
+* filtering `Message`s i.e. discarding them based on a level threshold
 * formatting the `Message` using a `Formatter`
 * delivering the `Message` using an `Output`
 
 ### Log Format
 
-The format used by `kvlog` by default follows the defaults of the 
+`kvlog` supports several log formats out of the box. Others can be added by implementing a 
+`formatter.Interface`.
+
+#### kvformat
+
+The default format used by `kvlog` follows the defaults of the 
 [logstash KV filter](https://www.elastic.co/guide/en/logstash/current/plugins-filters-kv.html). The following lines
 show examples of the log output
 
 ```
-ts=2019-08-16T12:58:22 level=info evt=started
-ts=2019-08-16T12:58:34 level=info evt=request duration=0.001s method=GET status=200 url=/
-ts=2019-08-16T12:58:34 level=info evt=request duration=0.000s method=GET status=404 url=/favicon.ico
-ts=2019-08-16T12:58:35 level=info evt=request duration=0.009s method=POST status=200 url=/pdf 
+ts=2019-08-16T12:58:22+02:00 lvl=info evt=started
+ts=2019-08-16T12:58:34+02:00 lvl=info evt=request dur=0.001s method=GET status=200 url=/
+ts=2019-08-16T12:58:34+02:00 lvl=info evt=request dur=0.000s method=GET status=404 url=/favicon.ico
+ts=2019-08-16T12:58:35+02:00 lvl=info evt=request dur=0.009s method=POST status=200 url=/pdf 
+```
+
+#### Terminal
+
+`kvlog` provides a terminal format which looks similar to the kvformat described above but uses
+ANSI color escape sequences to produce colored output suitable to be read by humans.
+
+#### JSON Lines
+
+`kvlog` provides another formatter that renders JSON lines (one line for each message). This format is
+especially useful when using log collectors such as logstash, GrayLog or fluentd. 
+
+The above example would look like the following in jsonl.
+
+```json
+{"ts":"2019-08-16T12:58:22+02:00","lvl":"info","evt":"started"}
+{"ts":"2019-08-16T12:58:34+02:00","lvl":"info","evt":"request","dur":"0.001s","method":"GET","status":200,"url":"/"}
+{"ts":"2019-08-16T12:58:34+02:00","lvl":"info","evt":"request","dur":"0.000s","method":"GET","status":404,"url":"/favicon.ico"}
+{"ts":"2019-08-16T12:58:35+02:00","lvl":"info","evt":"request","dur":"0.009s","method":"POST","status":200,"url":"/pdf"}
 ```
 
 ## Installation
@@ -91,13 +116,14 @@ import (
 	"os"
 
 	"github.com/halimath/kvlog"
+	"github.com/halimath/kvlog/filter"
 	"github.com/halimath/kvlog/formatter/kvformat"
 	"github.com/halimath/kvlog/handler"
 	"github.com/halimath/kvlog/msg"
 )
 
 func main () {
-	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, handler.Threshold(msg.LevelInfo)))
+	l := kvlog.NewLogger(handler.New(kvformat.Formatter, os.Stdout, filter.Threshold(msg.LevelInfo)))
 
 	name, _ := os.Hostname()
 	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))
