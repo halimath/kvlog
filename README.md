@@ -174,6 +174,18 @@ Key | Value Type | Description
 
 # Changelog
 
+## 0.6.0
+
+__:warning: breaking change:__ This version provides a new API which is in parts
+_not compatible_ to the API exposed before. This basically involves the way loggers
+and other components are configured (which normally only affects a small portion of
+the using code). The interface to creating and emitting log messages stays the same.
+
+* Nested loggers allow adding default key value pairs to add to all logger (i.e. for use with a _category_)
+* Reorganization into several packages; root package `kvlog` acts as a facade
+* Renamed some types (mostly interfaces) to better match the new package name (i.e. `handler.Interface` instead of `handler.Handler`)
+* Added `jsonl` formatter which creates [JSON lines](https://jsonlines.org/) output
+
 ## 0.5.0
 * `KVFormatter` sorts pairs based on key
 * New `TerminalFormatter` providing colored output on terminals
@@ -183,7 +195,7 @@ Key | Value Type | Description
 * Export package level logger instance `L`
 
 ## 0.3.0
-__Caution, breaking changes:__ This version provides a new API which is _not compatible_ to the 
+__:warning: breaking changes:__ This version provides a new API which is _not compatible_ to the 
 API exposed before.
 * Introduction of new component structure (see description above)
 
