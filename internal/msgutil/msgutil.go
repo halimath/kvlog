@@ -27,6 +27,7 @@ import (
 	"github.com/halimath/kvlog/msg"
 )
 
+// SortByKey implements sort.Interface to sort a slice of key-value-pairs by key.
 type SortByKey []msg.KVPair
 
 func (s SortByKey) Len() int      { return len(s) }
@@ -60,6 +61,8 @@ func (s SortByKey) Less(i, j int) bool {
 	return strings.Compare(s[i].Key, s[j].Key) < 0
 }
 
+// FormatValue formats a pair's value according to the formatting specs
+// writing the output to w.
 func FormatValue(k msg.KVPair, w io.Writer) (err error) {
 	switch x := k.Value.(type) {
 	case time.Time:

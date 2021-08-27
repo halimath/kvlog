@@ -13,16 +13,17 @@ import (
 	"github.com/halimath/kvlog/msg"
 )
 
-type Formatter struct {
+type jsonlFormatter struct {
 	w  io.Writer
 	jw *jsonl.Writer
 }
 
+// New creates a new formatter.Interface that formats JSON lines.
 func New() formatter.Interface {
-	return &Formatter{}
+	return &jsonlFormatter{}
 }
 
-func (f *Formatter) Format(m msg.Message, w io.Writer) error {
+func (f *jsonlFormatter) Format(m msg.Message, w io.Writer) error {
 	if f.jw == nil || f.w != w {
 		f.w = w
 		f.jw = jsonl.New(w)

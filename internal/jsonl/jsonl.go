@@ -94,6 +94,7 @@ func (w *Writer) writeString(s string) *Writer {
 	return w
 }
 
+// String outputs s formatted as a JSON string.
 func (w *Writer) String(s string) *Writer {
 	w.beforeValue()
 	writeJSONString(&w.buf, s)
@@ -101,6 +102,7 @@ func (w *Writer) String(s string) *Writer {
 	return w
 }
 
+// Int outputs i formatted as a JSON number.
 func (w *Writer) Int(i int64) *Writer {
 	w.beforeValue()
 	w.writeString(strconv.FormatInt(i, 10))
@@ -108,6 +110,7 @@ func (w *Writer) Int(i int64) *Writer {
 	return w
 }
 
+// Float outputs f formatted as a JSON number.
 func (w *Writer) Float(f float64) *Writer {
 	w.beforeValue()
 	w.writeString(strconv.FormatFloat(f, 'e', 8, 64))
@@ -115,6 +118,7 @@ func (w *Writer) Float(f float64) *Writer {
 	return w
 }
 
+// Bool outputs bol formatted as a JSON boolean.
 func (w *Writer) Bool(bol bool) *Writer {
 	w.beforeValue()
 	if bol {
@@ -126,6 +130,7 @@ func (w *Writer) Bool(bol bool) *Writer {
 	return w
 }
 
+// Null outputs a literal JSON "null".
 func (w *Writer) Null() *Writer {
 	w.beforeValue()
 	w.writeString("null")
@@ -133,6 +138,7 @@ func (w *Writer) Null() *Writer {
 	return w
 }
 
+// StartObject starts a new JSON object.
 func (w *Writer) StartObject() *Writer {
 	w.beforeValue()
 	w.writeByte('{')
@@ -142,6 +148,7 @@ func (w *Writer) StartObject() *Writer {
 	return w
 }
 
+// Key outputs k as a JSON object key.
 func (w *Writer) Key(k string) *Writer {
 	if !w.isNestedObject() {
 		panic("current nested structure is not an object")
@@ -164,6 +171,7 @@ func (w *Writer) Key(k string) *Writer {
 	return w
 }
 
+// EndObject ends the currently open JSON object.
 func (w *Writer) EndObject() *Writer {
 	w.writeByte('}')
 	w.nestingStack = w.nestingStack[:len(w.nestingStack)-1]
@@ -171,6 +179,7 @@ func (w *Writer) EndObject() *Writer {
 	return w
 }
 
+// StartArray starts a JSON array.
 func (w *Writer) StartArray() *Writer {
 	w.beforeValue()
 	w.writeByte('[')
@@ -181,6 +190,7 @@ func (w *Writer) StartArray() *Writer {
 	return w
 }
 
+// EndArray end the currently open JSON array.
 func (w *Writer) EndArray() *Writer {
 	w.writeByte(']')
 	w.nestingStack = w.nestingStack[:len(w.nestingStack)-1]

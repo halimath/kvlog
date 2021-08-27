@@ -114,6 +114,8 @@ type nested struct {
 	pairs  []msg.KVPair
 }
 
+// With creates a new logger nested under l which hosts pairs
+// and adds them to all messages emitted via the returned logger.
 func With(l Interface, pairs ...msg.KVPair) Interface {
 	return &nested{
 		parent: l,
@@ -121,6 +123,7 @@ func With(l Interface, pairs ...msg.KVPair) Interface {
 	}
 }
 
+// WithCategory uses With to create a nested logger with a fixed category.
 func WithCategory(l Interface, cat string) Interface {
 	return With(l, msg.Cat(cat))
 }
