@@ -1,8 +1,7 @@
-package jsonl
+package jsonencoder
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 )
 
@@ -38,8 +37,6 @@ func Benchmark_MarshalStruct(b *testing.B) {
 		Eggs nested `json:"eggs"`
 	}
 
-	// b.ResetTimer()
-
 	for i := 0; i < b.N; i++ {
 		data := dataType{
 			Foo:  "bar",
@@ -58,15 +55,15 @@ func Benchmark_MarshalStruct(b *testing.B) {
 }
 
 func Benchmark_jsonl(b *testing.B) {
+	w := New()
 	for i := 0; i < b.N; i++ {
-		var b strings.Builder
-		w := New(&b)
+		w.Reset()
 		w.StartObject()
-		w.Key("foo").String("bar")
-		w.Key("spam").Int(int64(i))
+		w.Key("foo").Str("bar")
+		w.Key("spam").Int(12)
 		w.Key("eggs").StartObject()
-		w.Key("foo").String("bar")
-		w.Key("spam").String("eggs")
+		w.Key("foo").Str("bar")
+		w.Key("spam").Str("eggs")
 		w.EndObject()
 		w.EndObject()
 	}

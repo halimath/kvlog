@@ -20,109 +20,269 @@ package kvlog
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"strings"
+	"sync"
 	"time"
-
-	"github.com/halimath/kvlog/filter"
-	"github.com/halimath/kvlog/formatter"
-	"github.com/halimath/kvlog/formatter/kvformat"
-	"github.com/halimath/kvlog/formatter/terminal"
-	"github.com/halimath/kvlog/handler"
-	"github.com/halimath/kvlog/logger"
-	"github.com/halimath/kvlog/msg"
-	"github.com/halimath/kvlog/output"
 )
 
-// L is the Logger instance used by package level functions.
-// Use this logger as a convenience.
-var L logger.Interface
+// Pair defines a single key-value pair as part of a logging event.
+type Pair struct {
+	Key   string
+	Value interface{}
+}
+
+// Event defines the type for a single logging event. key-value Pairs are given in descending priority order.
+type Event struct {
+	pairs []Pair
+	len   int
+	l     *logger
+}
+
+// Len returns the number of Pairs contained in e.
+func (e *Event) Len() int {
+	return e.len
+}
+
+// KV adds a new pair to e. The pair is constructed using key and value. If either key is an empty string
+// or value is nil, no pair is added.
+func (e *Event) KV(key string, value interface{}) *Event {
+	if key == "" || value == nil {
+		return e
+	}
+
+	if e.len < len(e.pairs) {
+		e.pairs[e.len].Key = key
+		e.pairs[e.len].Value = value
+	} else {
+		e.pairs = append(e.pairs, Pair{Key: key, Value: value})
+	}
+
+	e.len++
+
+	return e
+}
+
+// Err adds a pair with KeyError and err.
+func (e *Event) Err(err error) *Event {
+	return e.KV(KeyError, err)
+}
+
+// Dur adds a pair with KeyDuration and d.
+func (e *Event) Dur(d time.Duration) *Event {
+	return e.KV(KeyDuration, d)
+}
+
+// Log emits a log event with a message produced from joining the string representations of all given
+// v together.
+func (e *Event) Log(v ...string) {
+	if len(v) == 1 {
+		e.KV(KeyMessage, v[0])
+	} else if len(v) > 1 {
+		e.KV(KeyMessage, strings.Join(v, ", "))
+	}
+
+	e.l.deliver(e)
+}
+
+// Logf emits a log event with a message produced by formatting args according to format.
+func (e *Event) Logf(format string, args ...interface{}) {
+	e.l.Log(fmt.Sprintf(format, args...))
+}
+
+// Logger create a nested logger utilizing the key-value pairs added to this builder which will be
+// appended to all events produced from the resulting logger.
+// Calling Logger exhausts e so e must not be used afterwards.
+func (e *Event) Logger() Logger {
+	return &logger{
+		deliverFunc: e.l.deliverFunc,
+		newEventFunc: func() *Event {
+			n := e.l.newEventFunc()
+			for _, p := range e.pairs {
+				n.KV(p.Key, p.Value)
+			}
+			n.l = e.l
+			return n
+		},
+	}
+}
+
+// EachPair applies f to each Pair in e in priority order (most important first).
+func (e *Event) EachPair(f func(Pair)) {
+	for i := e.len - 1; i >= 0; i-- {
+		f(e.pairs[i])
+	}
+}
+
+var (
+	// The default key used to identify an event's time stamp.
+	KeyTime = "time"
+
+	// The default key used to identify an event's error.
+	KeyError = "err"
+
+	// The default key used to identify an event's message.
+	KeyMessage = "msg"
+
+	// The default key used to identify an event's duration value.
+	KeyDuration = "dur"
+
+	// The default size Events created from an Event pool.
+	DefaultEventSize = 16
+
+	// Number of events to allocate for a new Event pool.
+	InitialEventPoolSize = 128
+)
+
+// A Hook is some kind of processing that gets applied to every log event going through some logger. A typical
+// example is the time field that gets added via a hook from the root logger.
+type Hook interface {
+	// ApplyHook performs the hook's logic on e.
+	ApplyHook(e *Event)
+}
+
+// HookFunc is a convenience used to implement hooks as a simple function.
+type HookFunc func(e *Event)
+
+func (h HookFunc) ApplyHook(e *Event) { h(e) }
+
+// Logger defines the interface for all types that allow client code to emit log events.
+type Logger interface {
+	// AddHook adds a Hook to the Logger and returns it (or some derived Logger).
+	AddHook(Hook) Logger
+
+	// With starts a new Event used to configure either a log event or a sub-logger.
+	With() *Event
+
+	// Calling l.Log() is effectivly equivalent to calling
+	//
+	//   l.With().Log()
+	//
+	// It is provided for convenient logging of message-only events.
+	Log(v ...string)
+
+	// Calling l.Logf("hello %s", "foo") is effectivly equivalent to calling
+	//
+	//   l.With().Logf("hello %s", "foo")
+	//
+	// It is provided for convenient logging of message-only events.
+	Logf(format string, args ...interface{})
+}
+
+// Formatter defines the interface implemented by all event formatters.
+type Formatter interface {
+	// Formats e on w.
+	Format(w io.Writer, e *Event) error
+}
+
+// FormatterFunc is a converter type that allows using a plain function as a
+// Formatter.
+type FormatterFunc func(io.Writer, *Event) error
+
+// Format simply calls ff.
+func (ff FormatterFunc) Format(w io.Writer, e *Event) error {
+	return ff(w, e)
+}
+
+// A Handler is used to deliver events to a given sink.
+type Handler interface {
+	deliver(*Event)
+	// TODO: Add filter
+}
+
+type syncHandler struct {
+	out       io.Writer
+	formatter Formatter
+}
+
+// NewSyncHandler creates a new Handler that works synchronously by writing log events formatted with f to o.
+func NewSyncHandler(o io.Writer, f Formatter) Handler {
+	return &syncHandler{
+		out:       o,
+		formatter: f,
+	}
+}
+
+func (h *syncHandler) deliver(e *Event) {
+	h.formatter.Format(h.out, e)
+}
+
+func newEvent() *Event {
+	return &Event{
+		pairs: make([]Pair, DefaultEventSize),
+		len:   0,
+	}
+}
+
+// New creates a new root Logger. It sends the events to all given handlers.
+func New(handler ...Handler) Logger {
+	eventPool := &sync.Pool{
+		New: func() interface{} {
+			return newEvent()
+		},
+	}
+
+	for i := 0; i < InitialEventPoolSize; i++ {
+		eventPool.Put(newEvent())
+	}
+
+	l := &logger{}
+
+	l.newEventFunc = func() *Event {
+		e := eventPool.Get().(*Event)
+		e.l = l
+		return e
+	}
+
+	l.deliverFunc = func(e *Event) {
+		for _, h := range l.hooks {
+			h.ApplyHook(e)
+		}
+
+		for _, h := range handler {
+			h.deliver(e)
+		}
+
+		e.len = 0
+		e.l = nil
+		eventPool.Put(e)
+	}
+
+	return l
+}
+
+type logger struct {
+	hooks        []Hook
+	deliverFunc  func(e *Event)
+	newEventFunc func() *Event
+}
+
+func (l *logger) AddHook(h Hook) Logger {
+	l.hooks = append(l.hooks, h)
+
+	return l
+}
+
+func (l *logger) With() *Event                            { return l.newEventFunc() }
+func (l *logger) Log(v ...string)                         { l.With().Log(v...) }
+func (l *logger) Logf(format string, args ...interface{}) { l.With().Logf(format, args...) }
+func (l *logger) deliver(e *Event)                        { l.deliverFunc(e) }
+
+// L is a default Logger which is initialized based on the environment the app is running in. When os.Stdout
+// is a terminal device, the TerminalFormatter is used otherwise a JSONLFormatter is used. A TimeHook is
+// applied to L.
+var L Logger
 
 func init() {
-	var f formatter.Interface
+	var f Formatter
 	if isTerminal() {
-		f = terminal.Formatter
+		f = TerminalFormatter()
 	} else {
-		f = kvformat.Formatter
+		f = JSONLFormatter()
 	}
-	Init(handler.New(f, output.Stdout(), filter.Threshold(msg.LevelInfo)))
-}
 
-// Init initializes the package global logger to a new logger
-// using the given handler. The previous logger is closed if
-// it had been set before.
-func Init(handler ...*handler.Handler) {
-	if L != nil {
-		L.Close()
-	}
-	L = logger.New(handler...)
-}
-
-// Debug emits a log message of level debug.
-func Debug(pairs ...msg.KVPair) {
-	L.Debug(pairs...)
-}
-
-// Info emits a log message of level info.
-func Info(pairs ...msg.KVPair) {
-	L.Info(pairs...)
-}
-
-// Warn emits a log message of level warn.
-func Warn(pairs ...msg.KVPair) {
-	L.Warn(pairs...)
-}
-
-// Error emits a log message of level error.
-func Error(pairs ...msg.KVPair) {
-	L.Error(pairs...)
-}
-
-// KV is a factory method for KVPair values.
-func KV(key string, value interface{}) msg.KVPair {
-	return msg.KVPair{
-		Key:   key,
-		Value: value,
-	}
-}
-
-// Event creates a msg.KVPair for the "evt" key.
-//
-// Deprecated: Event is a deprecated alias for evt.
-func Event(value interface{}) msg.KVPair {
-	return Evt(value)
-}
-
-// Evt creates a KVpair with the "evt" key.
-func Evt(value interface{}) msg.KVPair {
-	return msg.KVPair{
-		Key:   msg.KeyEvent,
-		Value: value,
-	}
-}
-
-// Err creates a msg.KVPair with the "err" key.
-func Err(err error) msg.KVPair {
-	return msg.KVPair{
-		Key:   msg.KeyError,
-		Value: err.Error(),
-	}
-}
-
-// Msg creates a msg.KVPair with the "msg" key. It formats the message using
-// fmt.Sprintf.
-func Msg(format string, args ...interface{}) msg.KVPair {
-	return msg.KVPair{
-		Key:   msg.KeyMessage,
-		Value: fmt.Sprintf(format, args...),
-	}
-}
-
-// Dur creates a pair with the "dur" key containing an operation's duration.
-func Dur(d time.Duration) msg.KVPair {
-	return msg.KVPair{
-		Key:   msg.KeyDuration,
-		Value: d,
-	}
+	L = New(NewSyncHandler(os.Stdout, f)).AddHook(TimeHook)
 }
 
 func isTerminal() bool {

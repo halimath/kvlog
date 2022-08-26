@@ -20,47 +20,49 @@ package kvlog_test
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/halimath/kvlog"
-	"github.com/halimath/kvlog/filter"
-	"github.com/halimath/kvlog/formatter/kvformat"
-	"github.com/halimath/kvlog/handler"
-	"github.com/halimath/kvlog/logger"
-	"github.com/halimath/kvlog/msg"
 )
 
-func TestPackage(t *testing.T) {
+func TestPackage_noTimeHook(t *testing.T) {
 	var buf bytes.Buffer
 
-	kvlog.Init(handler.New(kvformat.Formatter, &buf, filter.Threshold(msg.LevelWarn)))
+	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter()))
 
-	now := time.Now()
-	kvlog.Debug(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-	kvlog.Info(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-	kvlog.Warn(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-	kvlog.Error(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+	l.Log("hello")
+	l.Logf("hello, %s", "world")
 
-	// Run Init again to close the old handler
-	kvlog.Init(handler.New(kvformat.Formatter, &buf, filter.Threshold(msg.LevelWarn)))
+	nl := l.With().KV("tracing_id", "1234").Logger()
+	fmt.Printf("%#v\n", nl)
+	nl.Log("got request")
 
-	exp := fmt.Sprintf("ts=%s lvl=warn evt=test foo=bar\nts=%s lvl=error evt=test foo=bar\n", now.Format(time.RFC3339), now.Format(time.RFC3339))
+	exp := `{"msg":"hello"}
+{"msg":"hello, world"}
+{"msg":"got request","tracing_id":"1234"}
+`
 
 	if buf.String() != exp {
 		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
 	}
 }
 
-func Example_packageFunctions() {
-	kvlog.Debug(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-	kvlog.Info(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-}
+func TestPackage_withTimeHook(t *testing.T) {
+	var buf bytes.Buffer
 
-func Example_customLogger() {
-	l := logger.New(handler.New(kvformat.Formatter, os.Stdout, filter.Threshold(msg.LevelInfo)))
+	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter())).
+		AddHook(kvlog.TimeHook)
+	now := time.Now()
 
-	name, _ := os.Hostname()
-	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))
+	l.Log("hello")
+	l.Logf("hello, %s", "world")
+
+	exp := fmt.Sprintf(`{"time":"%s","msg":"hello"}
+{"time":"%s","msg":"hello, world"}
+`, now.Format(time.RFC3339), now.Format(time.RFC3339))
+
+	if buf.String() != exp {
+		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
+	}
 }

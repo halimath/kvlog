@@ -15,56 +15,43 @@
 // limitations under the License.
 //
 
-// Package msgutil provides helper functions when working with msg.Messages.
-package msgutil
+package kvlog
 
 import (
 	"fmt"
 	"io"
 	"strings"
 	"time"
-
-	"github.com/halimath/kvlog/msg"
 )
 
-// SortByKey implements sort.Interface to sort a slice of key-value-pairs by key.
-type SortByKey []msg.KVPair
+// Formatter implements a formatter.Interface that writes the default KV format.
+var KVFormatter = FormatterFunc(formatMessageAsKV)
 
-func (s SortByKey) Len() int      { return len(s) }
-func (s SortByKey) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s SortByKey) Less(i, j int) bool {
-	if s[i].Key == msg.KeyTimestamp {
-		return true
-	}
-	if s[j].Key == msg.KeyTimestamp {
-		return false
-	}
-	if s[i].Key == msg.KeyLevel {
-		return true
-	}
-	if s[j].Key == msg.KeyLevel {
-		return false
-	}
-	if s[i].Key == msg.KeyCategory {
-		return true
-	}
-	if s[j].Key == msg.KeyCategory {
-		return false
-	}
-	if s[i].Key == msg.KeyEvent {
-		return true
-	}
-	if s[j].Key == msg.KeyEvent {
-		return false
-	}
+func formatMessageAsKV(w io.Writer, e *Event) error {
+	var pairWritten bool
 
-	return strings.Compare(s[i].Key, s[j].Key) < 0
+	e.EachPair(func(p Pair) {
+		if pairWritten {
+			fmt.Fprint(w, " ")
+		}
+		formatPair(w, p)
+		pairWritten = true
+	})
+
+	_, err := w.Write([]byte("\n"))
+	return err
 }
 
-// FormatValue formats a pair's value according to the formatting specs
-// writing the output to w.
-func FormatValue(k msg.KVPair, w io.Writer) (err error) {
-	switch x := k.Value.(type) {
+func formatPair(w io.Writer, p Pair) (err error) {
+	if _, err := fmt.Fprintf(w, "%s=", p.Key); err != nil {
+		return err
+	}
+
+	return formatValue(w, p)
+}
+
+func formatValue(w io.Writer, p Pair) (err error) {
+	switch x := p.Value.(type) {
 	case time.Time:
 		_, err = w.Write([]byte(x.Format(time.RFC3339)))
 	case time.Duration:
@@ -73,8 +60,6 @@ func FormatValue(k msg.KVPair, w io.Writer) (err error) {
 		_, err = fmt.Fprintf(w, "%d", x)
 	case float32, float64:
 		_, err = fmt.Fprintf(w, "%.3f", x)
-	case msg.Level:
-		_, err = w.Write([]byte(x.String()))
 	case string:
 		err = formatStringValue(w, x)
 	default:

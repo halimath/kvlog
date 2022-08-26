@@ -1,4 +1,4 @@
-package jsonl
+package jsonencoder
 
 import (
 	"strings"
@@ -20,10 +20,9 @@ func TestWriter_String(t *testing.T) {
 	}
 
 	for in, exp := range tab {
-		var buf strings.Builder
-		w := New(&buf)
-		w.String(in)
-		act := strings.TrimSpace(buf.String())
+		w := New()
+		w.Str(in)
+		act := strings.TrimSpace(w.String())
 
 		if exp != act {
 			t.Errorf("'%s': expected '%s' got '%s'", in, exp, act)
@@ -38,10 +37,9 @@ func TestWriter_Int(t *testing.T) {
 	}
 
 	for in, exp := range tab {
-		var buf strings.Builder
-		w := New(&buf)
+		w := New()
 		w.Int(in)
-		act := strings.TrimSpace(buf.String())
+		act := strings.TrimSpace(w.String())
 
 		if exp != act {
 			t.Errorf("%d: expected '%s' got '%s'", in, exp, act)
@@ -57,10 +55,9 @@ func TestWriter_Bool(t *testing.T) {
 	}
 
 	for in, exp := range tab {
-		var buf strings.Builder
-		w := New(&buf)
+		w := New()
 		w.Bool(in)
-		act := strings.TrimSpace(buf.String())
+		act := strings.TrimSpace(w.String())
 
 		if exp != act {
 			t.Errorf("%v: expected '%s' got '%s'", in, exp, act)
@@ -69,10 +66,9 @@ func TestWriter_Bool(t *testing.T) {
 }
 
 func TestWriter_Null(t *testing.T) {
-	var buf strings.Builder
-	w := New(&buf)
+	w := New()
 	w.Null()
-	act := strings.TrimSpace(buf.String())
+	act := strings.TrimSpace(w.String())
 
 	if act != "null" {
 		t.Errorf("expected 'null' got '%s'", act)
@@ -80,10 +76,9 @@ func TestWriter_Null(t *testing.T) {
 }
 
 func TestWriter_Float(t *testing.T) {
-	var buf strings.Builder
-	w := New(&buf)
+	w := New()
 	w.Float(1.2345)
-	act := strings.TrimSpace(buf.String())
+	act := strings.TrimSpace(w.String())
 
 	if act != "1.23450000e+00" {
 		t.Errorf("expected '1.23450000e+00' got '%s'", act)
@@ -91,11 +86,10 @@ func TestWriter_Float(t *testing.T) {
 }
 
 func TestWriter_EmptyArray(t *testing.T) {
-	var buf strings.Builder
-	w := New(&buf)
+	w := New()
 	w.StartArray()
 	w.EndArray()
-	act := strings.TrimSpace(buf.String())
+	act := strings.TrimSpace(w.String())
 
 	if act != "[]" {
 		t.Errorf("expected '[]' got '%s'", act)
@@ -103,12 +97,11 @@ func TestWriter_EmptyArray(t *testing.T) {
 }
 
 func TestWriter_ArrayWithSingleElement(t *testing.T) {
-	var buf strings.Builder
-	w := New(&buf)
+	w := New()
 	w.StartArray()
 	w.Int(2)
 	w.EndArray()
-	act := strings.TrimSpace(buf.String())
+	act := strings.TrimSpace(w.String())
 
 	if act != "[2]" {
 		t.Errorf("expected '[2]' got '%s'", act)
@@ -116,14 +109,13 @@ func TestWriter_ArrayWithSingleElement(t *testing.T) {
 }
 
 func TestWriter_ArrayWithMultipleElements(t *testing.T) {
-	var buf strings.Builder
-	w := New(&buf)
+	w := New()
 	w.StartArray()
 	w.Int(2)
 	w.Int(3)
 	w.Int(4)
 	w.EndArray()
-	act := strings.TrimSpace(buf.String())
+	act := strings.TrimSpace(w.String())
 
 	if act != "[2,3,4]" {
 		t.Errorf("expected '[2,3,4]' got '%s'", act)
@@ -131,24 +123,22 @@ func TestWriter_ArrayWithMultipleElements(t *testing.T) {
 }
 
 func TestWriter_EmptyObject(t *testing.T) {
-	var buf strings.Builder
-	w := New(&buf)
+	w := New()
 	w.StartObject()
 	w.EndObject()
-	act := strings.TrimSpace(buf.String())
+	act := strings.TrimSpace(w.String())
 
 	if act != "{}" {
 		t.Errorf("expected '{}' got '%s'", act)
 	}
 }
 func TestWriter_ObjectWithSingleKey(t *testing.T) {
-	var buf strings.Builder
-	w := New(&buf)
+	w := New()
 	w.StartObject()
 	w.Key("foo")
 	w.Int(1)
 	w.EndObject()
-	act := strings.TrimSpace(buf.String())
+	act := strings.TrimSpace(w.String())
 
 	if act != `{"foo":1}` {
 		t.Errorf(`expected '{"foo":1}' got '%s'`, act)
@@ -156,15 +146,14 @@ func TestWriter_ObjectWithSingleKey(t *testing.T) {
 }
 
 func TestWriter_ObjectWithMultipleKeys(t *testing.T) {
-	var buf strings.Builder
-	w := New(&buf)
+	w := New()
 	w.StartObject()
 	w.Key("foo")
 	w.Int(1)
 	w.Key("bar")
 	w.Int(2)
 	w.EndObject()
-	act := strings.TrimSpace(buf.String())
+	act := strings.TrimSpace(w.String())
 
 	if act != `{"foo":1,"bar":2}` {
 		t.Errorf(`expected '{"foo":1,"bar":2}' got '%s'`, act)
@@ -172,7 +161,7 @@ func TestWriter_ObjectWithMultipleKeys(t *testing.T) {
 }
 
 func TestWriter_InvalidKeyUsage(t *testing.T) {
-	type testCase func(*Writer)
+	type testCase func(*Encoder)
 	expectPanic := func(t *testing.T, tc testCase) {
 		defer func() {
 			if r := recover(); r == nil {
@@ -180,19 +169,18 @@ func TestWriter_InvalidKeyUsage(t *testing.T) {
 			}
 		}()
 
-		var buf strings.Builder
-		w := New(&buf)
+		w := New()
 		tc(w)
 	}
 
 	t.Run("key w/o object", func(t *testing.T) {
-		expectPanic(t, func(w *Writer) {
+		expectPanic(t, func(w *Encoder) {
 			w.Key("foo")
 		})
 	})
 
 	t.Run("key two times", func(t *testing.T) {
-		expectPanic(t, func(w *Writer) {
+		expectPanic(t, func(w *Encoder) {
 			w.StartObject()
 			w.Key("foo")
 			w.Key("foo")
@@ -200,9 +188,9 @@ func TestWriter_InvalidKeyUsage(t *testing.T) {
 	})
 
 	t.Run("value w/o key", func(t *testing.T) {
-		expectPanic(t, func(w *Writer) {
+		expectPanic(t, func(w *Encoder) {
 			w.StartObject()
-			w.String("foo")
+			w.Str("foo")
 		})
 	})
 }
