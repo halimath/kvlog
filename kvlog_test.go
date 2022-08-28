@@ -26,20 +26,24 @@ import (
 	"github.com/halimath/kvlog"
 )
 
-func TestPackage_noTimeHook(t *testing.T) {
+func TestLogger_noTimeHook(t *testing.T) {
 	var buf bytes.Buffer
 
 	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter()))
 
 	l.Log("hello")
 	l.Logf("hello, %s", "world")
+	l.With().Pairs(kvlog.Pairs{
+		"foo":  "bar",
+		"spam": "eggs",
+	}).Log("pairs")
 
 	nl := l.With().KV("tracing_id", "1234").Logger()
-	fmt.Printf("%#v\n", nl)
 	nl.Log("got request")
 
 	exp := `{"msg":"hello"}
 {"msg":"hello, world"}
+{"msg":"pairs","spam":"eggs","foo":"bar"}
 {"msg":"got request","tracing_id":"1234"}
 `
 
@@ -48,7 +52,7 @@ func TestPackage_noTimeHook(t *testing.T) {
 	}
 }
 
-func TestPackage_withTimeHook(t *testing.T) {
+func TestLogger_withTimeHook(t *testing.T) {
 	var buf bytes.Buffer
 
 	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter())).

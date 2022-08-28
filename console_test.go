@@ -22,14 +22,14 @@ import (
 	"testing"
 )
 
-func TestTerminalFormatter(t *testing.T) {
+func TestConsoleFormatter(t *testing.T) {
 	table := map[*Event]string{
 		newEvent().KV("spam", "eggs").KV("foo", "bar"): "\x1b[90mfoo:\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam:\x1b[0m\x1b[97meggs\x1b[0m\n",
 	}
 
 	for evt, exp := range table {
 		var buf bytes.Buffer
-		if err := TerminalFormatter().Format(&buf, evt); err != nil {
+		if err := ConsoleFormatter().Format(&buf, evt); err != nil {
 			t.Errorf("failed to format message: %s", err)
 		} else if exp != buf.String() {
 			t.Errorf("expected '%s' but got '%s'", exp, buf.String())

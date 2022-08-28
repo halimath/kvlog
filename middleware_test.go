@@ -17,27 +17,32 @@
 
 package kvlog
 
-// func TestMiddleware(t *testing.T) {
-// 	var out bytes.Buffer
-// 	logger := logger.New(handler.New(kvformat.Formatter, &out))
+import (
+	"bytes"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
 
-// 	handler := Middleware(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		w.Header().Add("X-Foo", "bar")
-// 		w.WriteHeader(http.StatusNoContent)
-// 		w.Write([]byte("hello, world"))
-// 	}))
+func TestMiddleware(t *testing.T) {
+	var out bytes.Buffer
+	logger := New(NewSyncHandler(&out, JSONLFormatter()))
 
-// 	req := httptest.NewRequest("get", "/test/path", nil)
-// 	w := httptest.NewRecorder()
+	handler := Middleware(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("X-Foo", "bar")
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte("hello, world"))
+	}))
 
-// 	now := time.Now().Format(time.RFC3339)
-// 	handler.ServeHTTP(w, req)
+	req := httptest.NewRequest("get", "/test/path", nil)
+	w := httptest.NewRecorder()
 
-// 	logger.Close()
+	handler.ServeHTTP(w, req)
 
-// 	expected := fmt.Sprintf("ts=%s lvl=info cat=http evt=request dur=0.000s method=get status=204 url=</test/path>\n", now)
+	expected := `{"msg":"request","dur":"0.000s","status":204,"url":"/test/path","method":"get"}
+`
 
-// 	if expected != out.String() {
-// 		t.Errorf("expected\n%s but got\n%s", expected, out.String())
-// 	}
-// }
+	if expected != out.String() {
+		t.Errorf("expected\n%s but got\n%s", expected, out.String())
+	}
+}

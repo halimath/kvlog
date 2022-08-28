@@ -25,9 +25,9 @@ import (
 	"time"
 )
 
-// TerminalFormatter is a formatter that outputs colorized log events to be
+// ConsoleFormatter is a formatter that outputs colorized log events to be
 // used by developers sitting in front of a terminal.
-func TerminalFormatter() Formatter {
+func ConsoleFormatter() Formatter {
 	start := time.Now()
 
 	return FormatterFunc(func(w io.Writer, e *Event) (err error) {

@@ -15,7 +15,6 @@
 // limitations under the License.
 //
 
-// Package kvlog provides a structured logging facility. It's structure is using key-value pairs.
 package kvlog
 
 import (
@@ -25,6 +24,26 @@ import (
 	"strings"
 	"sync"
 	"time"
+)
+
+var (
+	// The default key used to identify an event's time stamp.
+	KeyTime = "time"
+
+	// The default key used to identify an event's error.
+	KeyError = "err"
+
+	// The default key used to identify an event's message.
+	KeyMessage = "msg"
+
+	// The default key used to identify an event's duration value.
+	KeyDuration = "dur"
+
+	// The default size Events created from an Event pool.
+	DefaultEventSize = 16
+
+	// Number of events to allocate for a new Event pool.
+	InitialEventPoolSize = 128
 )
 
 // Pair defines a single key-value pair as part of a logging event.
@@ -74,12 +93,20 @@ func (e *Event) Dur(d time.Duration) *Event {
 	return e.KV(KeyDuration, d)
 }
 
-// Log emits a log event with a message produced from joining the string representations of all given
-// v together.
+// Pairs defines a map of key-value-pairs to be added to an Event.
+type Pairs map[string]interface{}
+
+// Pairs adds all key-value pairs from p to e and returns e.
+func (e *Event) Pairs(p Pairs) *Event {
+	for k, v := range p {
+		e.KV(k, v)
+	}
+	return e
+}
+
+// Log emits a log event.
 func (e *Event) Log(v ...string) {
-	if len(v) == 1 {
-		e.KV(KeyMessage, v[0])
-	} else if len(v) > 1 {
+	if len(v) > 0 {
 		e.KV(KeyMessage, strings.Join(v, ", "))
 	}
 
@@ -99,8 +126,8 @@ func (e *Event) Logger() Logger {
 		deliverFunc: e.l.deliverFunc,
 		newEventFunc: func() *Event {
 			n := e.l.newEventFunc()
-			for _, p := range e.pairs {
-				n.KV(p.Key, p.Value)
+			for i := 0; i < e.len; i++ {
+				n.KV(e.pairs[i].Key, e.pairs[i].Value)
 			}
 			n.l = e.l
 			return n
@@ -114,26 +141,6 @@ func (e *Event) EachPair(f func(Pair)) {
 		f(e.pairs[i])
 	}
 }
-
-var (
-	// The default key used to identify an event's time stamp.
-	KeyTime = "time"
-
-	// The default key used to identify an event's error.
-	KeyError = "err"
-
-	// The default key used to identify an event's message.
-	KeyMessage = "msg"
-
-	// The default key used to identify an event's duration value.
-	KeyDuration = "dur"
-
-	// The default size Events created from an Event pool.
-	DefaultEventSize = 16
-
-	// Number of events to allocate for a new Event pool.
-	InitialEventPoolSize = 128
-)
 
 // A Hook is some kind of processing that gets applied to every log event going through some logger. A typical
 // example is the time field that gets added via a hook from the root logger.
@@ -187,25 +194,9 @@ func (ff FormatterFunc) Format(w io.Writer, e *Event) error {
 
 // A Handler is used to deliver events to a given sink.
 type Handler interface {
+	Close()
 	deliver(*Event)
 	// TODO: Add filter
-}
-
-type syncHandler struct {
-	out       io.Writer
-	formatter Formatter
-}
-
-// NewSyncHandler creates a new Handler that works synchronously by writing log events formatted with f to o.
-func NewSyncHandler(o io.Writer, f Formatter) Handler {
-	return &syncHandler{
-		out:       o,
-		formatter: f,
-	}
-}
-
-func (h *syncHandler) deliver(e *Event) {
-	h.formatter.Format(h.out, e)
 }
 
 func newEvent() *Event {
@@ -231,6 +222,7 @@ func New(handler ...Handler) Logger {
 
 	l.newEventFunc = func() *Event {
 		e := eventPool.Get().(*Event)
+		e.len = 0
 		e.l = l
 		return e
 	}
@@ -244,7 +236,6 @@ func New(handler ...Handler) Logger {
 			h.deliver(e)
 		}
 
-		e.len = 0
 		e.l = nil
 		eventPool.Put(e)
 	}
@@ -277,7 +268,7 @@ var L Logger
 func init() {
 	var f Formatter
 	if isTerminal() {
-		f = TerminalFormatter()
+		f = ConsoleFormatter()
 	} else {
 		f = JSONLFormatter()
 	}
