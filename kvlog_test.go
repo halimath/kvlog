@@ -19,6 +19,7 @@ package kvlog_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -33,22 +34,48 @@ func TestLogger_noTimeHook(t *testing.T) {
 
 	l.Log("hello")
 	l.Logf("hello, %s", "world")
-	l.With().Pairs(kvlog.Pairs{
-		"foo":  "bar",
-		"spam": "eggs",
-	}).Log("pairs")
 
 	nl := l.With().KV("tracing_id", "1234").Logger()
 	nl.Log("got request")
 
 	exp := `{"msg":"hello"}
 {"msg":"hello, world"}
-{"msg":"pairs","spam":"eggs","foo":"bar"}
 {"msg":"got request","tracing_id":"1234"}
 `
 
 	if buf.String() != exp {
 		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
+	}
+}
+
+func TestLogger_pairs(t *testing.T) {
+	var buf bytes.Buffer
+
+	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter()))
+
+	l.With().Pairs(kvlog.Pairs{
+		"foo":  "bar",
+		"spam": "eggs",
+	}).Log("pairs")
+
+	var got map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+
+	foo := got["foo"]
+	if foo != "bar" {
+		t.Errorf("expected foo == \"bar\" but got \"%s\"", foo)
+	}
+
+	spam := got["spam"]
+	if spam != "eggs" {
+		t.Errorf("expected spam == \"eggs\" but got \"%s\"", spam)
+	}
+
+	msg := got[kvlog.KeyMessage]
+	if msg != "pairs" {
+		t.Errorf("expected msg == \"pairs\" but got \"%s\"", msg)
 	}
 }
 
