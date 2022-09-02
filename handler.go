@@ -40,7 +40,7 @@ type syncHandler struct {
 }
 
 // NewSyncHandler creates a new Handler that works synchronously by writing log events formatted with f to o.
-// f works by directly writing bytes to o; no buffering is done inbetween those.
+// f works by directly writing bytes to o; no buffering is done between those.
 func NewSyncHandler(o io.Writer, f Formatter) Handler {
 	return &syncHandler{
 		out:       o,

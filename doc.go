@@ -39,7 +39,7 @@
 // # Deriving Loggers
 //
 // Loggers can be derived from other Loggers. This enables to configure a set of key-value-pairs to be added
-// to every Event emmitted via a deriverd logger. The syntax works similar to emitting log messages this time
+// to every Event emitted via a deriverd logger. The syntax works similar to emitting log messages this time
 // only invoking Logger() instead of Log.
 //
 // # Hooks

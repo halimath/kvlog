@@ -162,14 +162,14 @@ type Logger interface {
 	// With starts a new Event used to configure either a log event or a sub-logger.
 	With() *Event
 
-	// Calling l.Log() is effectivly equivalent to calling
+	// Calling l.Log() is effectively equivalent to calling
 	//
 	//   l.With().Log()
 	//
 	// It is provided for convenient logging of message-only events.
 	Log(v ...string)
 
-	// Calling l.Logf("hello %s", "foo") is effectivly equivalent to calling
+	// Calling l.Logf("hello %s", "foo") is effectively equivalent to calling
 	//
 	//   l.With().Logf("hello %s", "foo")
 	//
