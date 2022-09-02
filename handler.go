@@ -107,3 +107,14 @@ func (h *asyncHandler) deliver(e *Event) {
 	h.formatter.Format(buf, e)
 	h.bufferChan <- buf
 }
+
+type noopHandler struct{}
+
+func (*noopHandler) Close()         {}
+func (*noopHandler) deliver(*Event) {}
+
+// NoOpHandler creates a no-operation handler that simply discards every event. Use this handler to silence
+// logging output completely.
+func NoOpHandler() Handler {
+	return &noopHandler{}
+}
