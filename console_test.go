@@ -15,31 +15,24 @@
 // limitations under the License.
 //
 
-package msg
+package kvlog
 
 import (
+	"bytes"
 	"testing"
 )
 
-func TestLevelString(t *testing.T) {
-	table := map[Level]string{
-		LevelDebug: "debug",
-		LevelInfo:  "info",
-		LevelWarn:  "warn",
-		LevelError: "error",
+func TestConsoleFormatter(t *testing.T) {
+	table := map[*Event]string{
+		newEvent().KV("spam", "eggs").KV("foo", "bar"): "\x1b[90mfoo:\x1b[0m\x1b[97mbar\x1b[0m \x1b[90mspam:\x1b[0m\x1b[97meggs\x1b[0m\n",
 	}
 
-	for level, expected := range table {
-		actual := level.String()
-		if actual != expected {
-			t.Errorf("expected '%s' but got '%s'", expected, actual)
+	for evt, exp := range table {
+		var buf bytes.Buffer
+		if err := ConsoleFormatter().Format(&buf, evt); err != nil {
+			t.Errorf("failed to format message: %s", err)
+		} else if exp != buf.String() {
+			t.Errorf("expected '%s' but got '%s'", exp, buf.String())
 		}
-	}
-}
-
-func TestMessageLevel(t *testing.T) {
-	m := NewMessage(LevelInfo, KV("foo", "bar"))
-	if m.Level() != LevelInfo {
-		t.Errorf("expected info but got %s", m.Level())
 	}
 }

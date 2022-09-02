@@ -19,20 +19,14 @@ package kvlog
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
-
-	"github.com/halimath/kvlog/formatter/kvformat"
-	"github.com/halimath/kvlog/handler"
-	"github.com/halimath/kvlog/logger"
 )
 
 func TestMiddleware(t *testing.T) {
 	var out bytes.Buffer
-	logger := logger.New(handler.New(kvformat.Formatter, &out))
+	logger := New(NewSyncHandler(&out, JSONLFormatter()))
 
 	handler := Middleware(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("X-Foo", "bar")
@@ -43,12 +37,10 @@ func TestMiddleware(t *testing.T) {
 	req := httptest.NewRequest("get", "/test/path", nil)
 	w := httptest.NewRecorder()
 
-	now := time.Now().Format(time.RFC3339)
 	handler.ServeHTTP(w, req)
 
-	logger.Close()
-
-	expected := fmt.Sprintf("ts=%s lvl=info cat=http evt=request dur=0.000s method=get status=204 url=</test/path>\n", now)
+	expected := `{"msg":"request","dur":"0.000s","status":204,"url":"/test/path","method":"get"}
+`
 
 	if expected != out.String() {
 		t.Errorf("expected\n%s but got\n%s", expected, out.String())

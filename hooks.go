@@ -15,26 +15,11 @@
 // limitations under the License.
 //
 
-package formatter
+package kvlog
 
-import (
-	"io"
+import "time"
 
-	"github.com/halimath/kvlog/msg"
-)
-
-// Interface defines the interface implemented by all
-// message formatters.
-type Interface interface {
-	// Formats the given message into a slice of bytes.
-	Format(m msg.Message, w io.Writer) error
-}
-
-// FormatterFunc is a converter type that allows using
-// a plain function as a Formatter.
-type FormatterFunc func(m msg.Message, w io.Writer) error
-
-// Format simply calls ff.
-func (ff FormatterFunc) Format(m msg.Message, w io.Writer) error {
-	return ff(m, w)
-}
+// TimeHook is a Hook that adds the current time as key KeyTime.
+var TimeHook = HookFunc(func(e *Event) {
+	e.KV(KeyTime, time.Now())
+})

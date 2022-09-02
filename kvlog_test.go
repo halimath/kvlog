@@ -19,48 +19,81 @@ package kvlog_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/halimath/kvlog"
-	"github.com/halimath/kvlog/filter"
-	"github.com/halimath/kvlog/formatter/kvformat"
-	"github.com/halimath/kvlog/handler"
-	"github.com/halimath/kvlog/logger"
-	"github.com/halimath/kvlog/msg"
 )
 
-func TestPackage(t *testing.T) {
+func TestLogger_noTimeHook(t *testing.T) {
 	var buf bytes.Buffer
 
-	kvlog.Init(handler.New(kvformat.Formatter, &buf, filter.Threshold(msg.LevelWarn)))
+	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter()))
 
-	now := time.Now()
-	kvlog.Debug(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-	kvlog.Info(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-	kvlog.Warn(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-	kvlog.Error(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+	l.Log("hello")
+	l.Logf("hello, %s", "world")
 
-	// Run Init again to close the old handler
-	kvlog.Init(handler.New(kvformat.Formatter, &buf, filter.Threshold(msg.LevelWarn)))
+	nl := l.With().KV("tracing_id", "1234").Logger()
+	nl.Log("got request")
 
-	exp := fmt.Sprintf("ts=%s lvl=warn evt=test foo=bar\nts=%s lvl=error evt=test foo=bar\n", now.Format(time.RFC3339), now.Format(time.RFC3339))
+	exp := `{"msg":"hello"}
+{"msg":"hello, world"}
+{"msg":"got request","tracing_id":"1234"}
+`
 
 	if buf.String() != exp {
 		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
 	}
 }
 
-func Example_packageFunctions() {
-	kvlog.Debug(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
-	kvlog.Info(kvlog.Evt("test"), kvlog.KV("foo", "bar"))
+func TestLogger_pairs(t *testing.T) {
+	var buf bytes.Buffer
+
+	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter()))
+
+	l.With().Pairs(kvlog.Pairs{
+		"foo":  "bar",
+		"spam": "eggs",
+	}).Log("pairs")
+
+	var got map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+
+	foo := got["foo"]
+	if foo != "bar" {
+		t.Errorf("expected foo == \"bar\" but got \"%s\"", foo)
+	}
+
+	spam := got["spam"]
+	if spam != "eggs" {
+		t.Errorf("expected spam == \"eggs\" but got \"%s\"", spam)
+	}
+
+	msg := got[kvlog.KeyMessage]
+	if msg != "pairs" {
+		t.Errorf("expected msg == \"pairs\" but got \"%s\"", msg)
+	}
 }
 
-func Example_customLogger() {
-	l := logger.New(handler.New(kvformat.Formatter, os.Stdout, filter.Threshold(msg.LevelInfo)))
+func TestLogger_withTimeHook(t *testing.T) {
+	var buf bytes.Buffer
 
-	name, _ := os.Hostname()
-	l.Info(kvlog.Evt("appStarted"), kvlog.KV("hostname", name))
+	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter())).
+		AddHook(kvlog.TimeHook)
+	now := time.Now()
+
+	l.Log("hello")
+	l.Logf("hello, %s", "world")
+
+	exp := fmt.Sprintf(`{"time":"%s","msg":"hello"}
+{"time":"%s","msg":"hello, world"}
+`, now.Format(time.RFC3339), now.Format(time.RFC3339))
+
+	if buf.String() != exp {
+		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
+	}
 }

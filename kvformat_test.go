@@ -15,27 +15,23 @@
 // limitations under the License.
 //
 
-package kvformat
+package kvlog
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/halimath/kvlog/msg"
 )
 
 func TestKVFormatter(t *testing.T) {
-	now := time.Now()
-
-	table := map[*msg.Message]string{
-		m(msg.LevelInfo, msg.KV("spam", "eggs"), msg.KV("foo", "bar")): fmt.Sprintf("ts=%s lvl=info foo=bar spam=eggs\n", now.Format(time.RFC3339)),
+	table := map[*Event]string{
+		newEvent().KV("spam", "eggs").KV("foo", "hello world"): "foo=<hello world> spam=eggs\n",
 	}
 
-	for msg, exp := range table {
+	for evt, exp := range table {
 		var buf bytes.Buffer
-		if err := Formatter.Format(*msg, &buf); err != nil {
+		if err := KVFormatter.Format(&buf, evt); err != nil {
 			t.Errorf("failed to format message: %s", err)
 		} else if exp != buf.String() {
 			t.Errorf("expected '%s' but got '%s'", exp, buf.String())
@@ -45,27 +41,21 @@ func TestKVFormatter(t *testing.T) {
 
 func TestFormatPair(t *testing.T) {
 	ts := time.Now()
-	tab := map[msg.KVPair]string{
-		msg.KV("foo", "bar"):         "foo=bar",
-		msg.KV("foo", 19):            "foo=19",
-		msg.KV("foo", 19.3):          "foo=19.300",
-		msg.KV("foo", msg.LevelInfo): "foo=info",
-		msg.KV("foo", "Hello world"): "foo=<Hello world>",
-		msg.KV("foo", ts):            fmt.Sprintf("foo=%s", ts.Format(time.RFC3339)),
-		msg.KV("foo", 2*time.Second): "foo=2.000s",
+	tab := map[Pair]string{
+		{Key: "foo", Value: "bar"}:           "foo=bar",
+		{Key: "foo", Value: 19}:              "foo=19",
+		{Key: "foo", Value: 19.3}:            "foo=19.300",
+		{Key: "foo", Value: "Hello world"}:   "foo=<Hello world>",
+		{Key: "foo", Value: ts}:              fmt.Sprintf("foo=%s", ts.Format(time.RFC3339)),
+		{Key: "foo", Value: 2 * time.Second}: "foo=2.000s",
 	}
 
-	for kv, exp := range tab {
+	for p, exp := range tab {
 		var buf bytes.Buffer
-		if err := formatPair(kv, &buf); err != nil {
-			t.Errorf("failed to format %#v: %s", kv, err)
+		if err := formatPair(&buf, p); err != nil {
+			t.Errorf("failed to format %#v: %s", p, err)
 		} else if buf.String() != exp {
-			t.Errorf("failed to write %#v: expected '%s' but got '%s'", kv, exp, buf.String())
+			t.Errorf("failed to write %#v: expected '%s' but got '%s'", p, exp, buf.String())
 		}
 	}
-}
-
-func m(l msg.Level, pairs ...msg.KVPair) *msg.Message {
-	m := msg.NewMessage(l, pairs...)
-	return &m
 }

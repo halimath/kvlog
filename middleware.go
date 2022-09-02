@@ -20,13 +20,10 @@ package kvlog
 import (
 	"net/http"
 	"time"
-
-	"github.com/halimath/kvlog/logger"
-	"github.com/halimath/kvlog/msg"
 )
 
 type accessLogMW struct {
-	logger   logger.Interface
+	logger   Logger
 	delegate http.Handler
 }
 
@@ -48,7 +45,7 @@ func (w *responseWriterWrapper) WriteHeader(statusCode int) {
 	w.w.WriteHeader(statusCode)
 }
 
-func (l *accessLogMW) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (m *accessLogMW) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 
 	wrapper := &responseWriterWrapper{
@@ -56,16 +53,21 @@ func (l *accessLogMW) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		statusCode: 200,
 	}
 
-	l.delegate.ServeHTTP(wrapper, r)
+	m.delegate.ServeHTTP(wrapper, r)
 
 	requestTime := time.Since(startTime)
-	l.logger.Info(msg.Evt("request"), msg.KV("method", r.Method), msg.KV("url", r.URL), msg.KV("status", wrapper.statusCode), msg.Dur(requestTime))
+	m.logger.With().
+		KV("method", r.Method).
+		KV("url", r.URL).
+		KV("status", wrapper.statusCode).
+		Dur(requestTime).
+		Log("request")
 }
 
 // Middleware returns a http.Handler that acts as an access log middleware.
-func Middleware(l logger.Interface, h http.Handler) http.Handler {
+func Middleware(l Logger, h http.Handler) http.Handler {
 	return &accessLogMW{
-		logger:   logger.WithCategory(l, "http"),
+		logger:   l,
 		delegate: h,
 	}
 }
