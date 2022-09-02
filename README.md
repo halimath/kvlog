@@ -232,6 +232,10 @@ go-kit/log                          | 2248 | 970 | 18
 
 # Changelog
 
+## 0.8.0
+
+* added `NoOpHandler` to easily silence logging output
+
 ## 0.7.0 
 
 __:warning: breaking change:__ This version provides a new API which is _not compatible_ to the API exposed
