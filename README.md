@@ -232,6 +232,10 @@ go-kit/log                          | 2248 | 970 | 18
 
 # Changelog
 
+## 0.8.1
+
+* Fix: add `sync.Mutex` to lock `Handler`
+
 ## 0.8.0
 
 * added `NoOpHandler` to easily silence logging output
