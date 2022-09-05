@@ -35,6 +35,7 @@ var (
 )
 
 type syncHandler struct {
+	lock      sync.Mutex
 	out       io.Writer
 	formatter Formatter
 }
@@ -51,10 +52,13 @@ func NewSyncHandler(o io.Writer, f Formatter) Handler {
 func (h *syncHandler) Close() {}
 
 func (h *syncHandler) deliver(e *Event) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
 	h.formatter.Format(h.out, e)
 }
 
 type asyncHandler struct {
+	lock         sync.Mutex
 	formatter    Formatter
 	pool         *sync.Pool
 	bufferChan   chan *bytes.Buffer
@@ -103,6 +107,9 @@ func (h *asyncHandler) Close() {
 }
 
 func (h *asyncHandler) deliver(e *Event) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
 	buf := h.pool.Get().(*bytes.Buffer)
 	h.formatter.Format(buf, e)
 	h.bufferChan <- buf

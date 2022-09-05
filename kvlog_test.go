@@ -21,6 +21,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -96,4 +99,36 @@ func TestLogger_withTimeHook(t *testing.T) {
 	if buf.String() != exp {
 		t.Errorf("expected '%s' but got '%s'", exp, buf.String())
 	}
+}
+
+func TestLogger_concurrentTest(t *testing.T) {
+	var buf bytes.Buffer
+
+	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter()))
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			for j := 0; j < 100; j++ {
+				l.With().
+					KV("i", i).
+					KV("j", j).
+					Log("msg")
+
+				time.Sleep(time.Duration(rand.Intn(20)) * time.Millisecond)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+
+	if len(lines) != 100*100 {
+		t.Fatalf("unexpected number of log lines: %d", len(lines))
+	}
+
 }
