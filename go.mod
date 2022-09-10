@@ -17,4 +17,10 @@
 
 module github.com/halimath/kvlog
 
-go 1.11
+go 1.16
+
+retract (
+    v0.8.1
+    v0.8.0
+    v0.7.0
+)

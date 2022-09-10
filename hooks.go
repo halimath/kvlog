@@ -21,5 +21,5 @@ import "time"
 
 // TimeHook is a Hook that adds the current time as key KeyTime.
 var TimeHook = HookFunc(func(e *Event) {
-	e.KV(KeyTime, time.Now())
+	e.AddPair(WithKV(KeyTime, time.Now()))
 })

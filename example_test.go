@@ -9,28 +9,29 @@ import (
 )
 
 func ExampleL() {
-	kvlog.L.With().
-		KV("tracing_id", 1234).
-		Dur(time.Second).
-		Err(fmt.Errorf("some error")).
-		Log("hello, world")
+	kvlog.L.Logs("hello, world",
+		kvlog.WithKV("tracing_id", 1234),
+		kvlog.WithDur(time.Second),
+		kvlog.WithErr(fmt.Errorf("some error")),
+	)
 }
 
 func Example_customLogger() {
 	logger := kvlog.New(kvlog.NewSyncHandler(os.Stdout, kvlog.JSONLFormatter())).
 		AddHook(kvlog.TimeHook)
 
-	logger.With().
-		KV("tracing_id", 1234).
-		Dur(time.Second).
-		Err(fmt.Errorf("some error")).
-		Log("hello, world")
+	logger.Logs("hello, world",
+		kvlog.WithKV("tracing_id", 1234),
+		kvlog.WithDur(time.Second),
+		kvlog.WithErr(fmt.Errorf("some error")),
+	)
+
 }
 
 func ExampleNewAsyncHandler() {
 	h := kvlog.NewAsyncHandler(os.Stdout, kvlog.JSONLFormatter())
 	logger := kvlog.New(h)
-	logger.Log("test")
+	logger.Logs("test")
 	h.Close()
 
 	// Output: {"msg":"test"}
@@ -45,10 +46,10 @@ func ExampleCustomHook() {
 
 	logger := kvlog.New(kvlog.NewSyncHandler(os.Stdout, kvlog.JSONLFormatter())).
 		AddHook(kvlog.HookFunc(func(e *kvlog.Event) {
-			e.KV("tracing_id", extractTracingID())
+			e.AddPair(kvlog.WithKV("tracing_id", extractTracingID()))
 		}))
 
-	logger.Log("request")
+	logger.Logs("request")
 
 	// Output: {"tracing_id":"1234","msg":"request"}
 }

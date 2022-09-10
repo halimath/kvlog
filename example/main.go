@@ -8,16 +8,15 @@ import (
 )
 
 func main() {
-	kvlog.L.With().
-		KV("tracing_id", 1234).
-		Dur(time.Second).
-		Err(fmt.Errorf("some error")).
-		Log("hello, world")
+	kvlog.L.Logs("hello, world",
+		kvlog.WithKV("tracing_id", 1234),
+		kvlog.WithDur(time.Second),
+		kvlog.WithErr(fmt.Errorf("some error")),
+	)
 
-	kvlog.L.With().
-		Pairs(kvlog.Pairs{
+	kvlog.L.Logs("some event",
+		kvlog.WithPairs(kvlog.Pairs{
 			"user_name": "foobar",
 			"user_id":   "1234",
-		}).
-		Log("some event")
+		})...)
 }

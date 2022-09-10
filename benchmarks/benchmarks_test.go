@@ -22,12 +22,12 @@ func BenchmarkKVLog_syncHandler_JSONLFormatter(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		l.With().
-			KV("spam", "eggs").
-			KV("foo", 17).
-			KV("enabled", true).
-			Dur(time.Second).
-			Log("some message")
+		l.Logs("some message",
+			kvlog.WithKV("spam", "eggs"),
+			kvlog.WithKV("foo", 17),
+			kvlog.WithKV("enabled", true),
+			kvlog.WithDur(time.Second),
+		)
 	}
 }
 
@@ -42,12 +42,12 @@ func BenchmarkKVLog_syncHandler_KVFormatter(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		l.With().
-			KV("spam", "eggs").
-			KV("foo", 17).
-			KV("enabled", true).
-			Dur(time.Second).
-			Log("some message")
+		l.Logs("some message",
+			kvlog.WithKV("spam", "eggs"),
+			kvlog.WithKV("foo", 17),
+			kvlog.WithKV("enabled", true),
+			kvlog.WithDur(time.Second),
+		)
 	}
 }
 
@@ -63,12 +63,12 @@ func BenchmarkKVLog_asyncHandler(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		l.With().
-			KV("spam", "eggs").
-			KV("foo", 17).
-			KV("enabled", true).
-			Dur(time.Second).
-			Log("some message")
+		l.Logs("some message",
+			kvlog.WithKV("spam", "eggs"),
+			kvlog.WithKV("foo", 17),
+			kvlog.WithKV("enabled", true),
+			kvlog.WithDur(time.Second),
+		)
 	}
 
 	h.Close()
