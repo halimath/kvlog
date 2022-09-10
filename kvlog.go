@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"sync"
 	"time"
 )
@@ -52,11 +51,61 @@ type Pair struct {
 	Value interface{}
 }
 
+var (
+	pairPool sync.Pool
+)
+
+const (
+	pairPoolInitialSize = 128
+)
+
+func init() {
+	pairPool = sync.Pool{
+		New: func() interface{} {
+			return &Pair{}
+		},
+	}
+
+	for i := 0; i < pairPoolInitialSize; i++ {
+		pairPool.Put(&Pair{})
+	}
+}
+
+// WithKV creates a new Pair to be added to either an Event or a Logger. Pairs are pulled from a pool and are
+// returned once the Event has been created.
+func WithKV(key string, value interface{}) *Pair {
+	p := pairPool.Get().(*Pair)
+	p.Key = key
+	p.Value = value
+	return p
+}
+
+// WithErr creates a Pair with KeyError and err.
+func WithErr(err error) *Pair {
+	return WithKV(KeyError, err)
+}
+
+// WithDur creates a Pair with KeyDuration and d.
+func WithDur(d time.Duration) *Pair {
+	return WithKV(KeyDuration, d)
+}
+
+// Pairs defines a map of key-value-pairs to be added to an Event.
+type Pairs map[string]interface{}
+
+// WithPairs adds all key-value pairs from p to e and returns e.
+func WithPairs(p Pairs) []*Pair {
+	pairs := make([]*Pair, 0, len(p))
+	for k, v := range p {
+		pairs = append(pairs, WithKV(k, v))
+	}
+	return pairs
+}
+
 // Event defines the type for a single logging event. key-value Pairs are given in descending priority order.
 type Event struct {
 	pairs []Pair
 	len   int
-	l     *logger
 }
 
 // Len returns the number of Pairs contained in e.
@@ -64,82 +113,22 @@ func (e *Event) Len() int {
 	return e.len
 }
 
-// KV adds a new pair to e. The pair is constructed using key and value. If either key is an empty string
-// or value is nil, no pair is added.
-func (e *Event) KV(key string, value interface{}) *Event {
-	if key == "" || value == nil {
-		return e
-	}
-
-	if e.len < len(e.pairs) {
-		e.pairs[e.len].Key = key
-		e.pairs[e.len].Value = value
-	} else {
-		e.pairs = append(e.pairs, Pair{Key: key, Value: value})
-	}
-
-	e.len++
-
-	return e
-}
-
-// Err adds a pair with KeyError and err.
-func (e *Event) Err(err error) *Event {
-	return e.KV(KeyError, err)
-}
-
-// Dur adds a pair with KeyDuration and d.
-func (e *Event) Dur(d time.Duration) *Event {
-	return e.KV(KeyDuration, d)
-}
-
-// Pairs defines a map of key-value-pairs to be added to an Event.
-type Pairs map[string]interface{}
-
-// Pairs adds all key-value pairs from p to e and returns e.
-func (e *Event) Pairs(p Pairs) *Event {
-	for k, v := range p {
-		e.KV(k, v)
-	}
-	return e
-}
-
-// Log emits a log event.
-func (e *Event) Log(v ...string) {
-	if len(v) > 0 {
-		e.KV(KeyMessage, strings.Join(v, ", "))
-	}
-
-	e.l.deliver(e)
-}
-
-// Logf emits a log event with a message produced by formatting args according to format.
-func (e *Event) Logf(format string, args ...interface{}) {
-	e.l.Log(fmt.Sprintf(format, args...))
-}
-
-// Logger create a nested logger utilizing the key-value pairs added to this builder which will be
-// appended to all events produced from the resulting logger.
-// Calling Logger exhausts e so e must not be used afterwards.
-func (e *Event) Logger() Logger {
-	return &logger{
-		deliverFunc: e.l.deliverFunc,
-		newEventFunc: func() *Event {
-			n := e.l.newEventFunc()
-			for i := 0; i < e.len; i++ {
-				n.KV(e.pairs[i].Key, e.pairs[i].Value)
-			}
-			n.l = e.l
-			return n
-		},
-	}
-}
-
 // EachPair applies f to each Pair in e in priority order (most important first).
 func (e *Event) EachPair(f func(Pair)) {
 	for i := e.len - 1; i >= 0; i-- {
 		f(e.pairs[i])
 	}
+}
+
+func (e *Event) AddPair(p *Pair) {
+	if e.len < len(e.pairs) {
+		e.pairs[e.len].Key = p.Key
+		e.pairs[e.len].Value = p.Value
+	} else {
+		e.pairs = append(e.pairs, Pair{Key: p.Key, Value: p.Value})
+	}
+
+	e.len++
 }
 
 // A Hook is some kind of processing that gets applied to every log event going through some logger. A typical
@@ -159,22 +148,28 @@ type Logger interface {
 	// AddHook adds a Hook to the Logger and returns it (or some derived Logger).
 	AddHook(Hook) Logger
 
-	// With starts a new Event used to configure either a log event or a sub-logger.
-	With() *Event
+	// Log logs an Event consisting of pairs merged with this logger's pairs.
+	Log(pairs ...*Pair)
 
-	// Calling l.Log() is effectively equivalent to calling
-	//
-	//   l.With().Log()
-	//
-	// It is provided for convenient logging of message-only events.
-	Log(v ...string)
+	// Logs logs an Event consisting of paris merged with this logger's pairs. In addition, a message pair
+	// is added with msg being the value.
+	Logs(msg string, pairs ...*Pair)
 
-	// Calling l.Logf("hello %s", "foo") is effectively equivalent to calling
+	// Logf works similar to Logs. It formats the message according to format. args is filtered before being
+	// passed to fmt.Sprintf; all Pair values are removed and are passed to Logs separately.
 	//
-	//   l.With().Logf("hello %s", "foo")
+	// Example
 	//
-	// It is provided for convenient logging of message-only events.
+	//   l.Logf("hello, %s", "world", kvlog.WithKV("foo", "bar"))
+	//
+	// is identical to
+	//
+	//   l.Logs("hello, world", kvlog.WithKV("foo", "bar"))
+	//
 	Logf(format string, args ...interface{})
+
+	// Sub creates a sub-logger using pairs for every event.
+	Sub(pairs ...*Pair) Logger
 }
 
 // Formatter defines the interface implemented by all event formatters.
@@ -223,7 +218,6 @@ func New(handler ...Handler) Logger {
 	l.newEventFunc = func() *Event {
 		e := eventPool.Get().(*Event)
 		e.len = 0
-		e.l = l
 		return e
 	}
 
@@ -236,7 +230,6 @@ func New(handler ...Handler) Logger {
 			h.deliver(e)
 		}
 
-		e.l = nil
 		eventPool.Put(e)
 	}
 
@@ -255,10 +248,63 @@ func (l *logger) AddHook(h Hook) Logger {
 	return l
 }
 
-func (l *logger) With() *Event                            { return l.newEventFunc() }
-func (l *logger) Log(v ...string)                         { l.With().Log(v...) }
-func (l *logger) Logf(format string, args ...interface{}) { l.With().Logf(format, args...) }
-func (l *logger) deliver(e *Event)                        { l.deliverFunc(e) }
+func (l *logger) Log(pairs ...*Pair) {
+	evt := l.newEventFunc()
+	for _, p := range pairs {
+		evt.AddPair(p)
+		pairPool.Put(p)
+	}
+	l.deliverFunc(evt)
+}
+
+func (l *logger) Logs(msg string, pairs ...*Pair) {
+	if len(pairs) == 0 {
+		l.Log(WithKV(KeyMessage, msg))
+		return
+	}
+
+	pairs = append(pairs, WithKV(KeyMessage, msg))
+	l.Log(pairs...)
+}
+
+func (l *logger) Logf(format string, args ...interface{}) {
+	formatArgs := make([]interface{}, 0, len(args))
+	pairs := make([]*Pair, 0, len(args)+1)
+
+	for _, arg := range args {
+		if p, ok := arg.(*Pair); ok {
+			pairs = append(pairs, p)
+		} else {
+			formatArgs = append(formatArgs, arg)
+		}
+	}
+
+	pairs = append(pairs, WithKV(KeyMessage, fmt.Sprintf(format, formatArgs...)))
+
+	l.Log(pairs...)
+}
+
+func (l *logger) Sub(pairs ...*Pair) Logger {
+	h := HookFunc(func(e *Event) {
+		for _, p := range pairs {
+			e.AddPair(p)
+		}
+	})
+
+	sub := &logger{
+		hooks:        []Hook{h},
+		newEventFunc: l.newEventFunc,
+	}
+
+	sub.deliverFunc = func(e *Event) {
+		for _, h := range sub.hooks {
+			h.ApplyHook(e)
+		}
+		l.deliverFunc(e)
+	}
+
+	return sub
+}
 
 // L is a default Logger which is initialized based on the environment the app is running in. When os.Stdout
 // is a terminal device, the TerminalFormatter is used otherwise a JSONLFormatter is used. A TimeHook is

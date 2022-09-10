@@ -25,17 +25,17 @@ import (
 )
 
 func TestKVFormatter(t *testing.T) {
-	table := map[*Event]string{
-		newEvent().KV("spam", "eggs").KV("foo", "hello world"): "foo=<hello world> spam=eggs\n",
-	}
+	evt := newEvent()
+	evt.AddPair(WithKV("spam", "eggs"))
+	evt.AddPair(WithKV("foo", "hello world"))
 
-	for evt, exp := range table {
-		var buf bytes.Buffer
-		if err := KVFormatter.Format(&buf, evt); err != nil {
-			t.Errorf("failed to format message: %s", err)
-		} else if exp != buf.String() {
-			t.Errorf("expected '%s' but got '%s'", exp, buf.String())
-		}
+	want := "foo=<hello world> spam=eggs\n"
+
+	var buf bytes.Buffer
+	if err := KVFormatter.Format(&buf, evt); err != nil {
+		t.Errorf("failed to format message: %s", err)
+	} else if want != buf.String() {
+		t.Errorf("expected '%s' but got '%s'", want, buf.String())
 	}
 }
 

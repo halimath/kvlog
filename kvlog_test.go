@@ -35,15 +35,15 @@ func TestLogger_noTimeHook(t *testing.T) {
 
 	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter()))
 
-	l.Log("hello")
+	l.Logs("hello")
 	l.Logf("hello, %s", "world")
 
-	nl := l.With().KV("tracing_id", "1234").Logger()
-	nl.Log("got request")
+	nl := l.Sub(kvlog.WithKV("tracing_id", "1234"))
+	nl.Logs("got request")
 
 	exp := `{"msg":"hello"}
 {"msg":"hello, world"}
-{"msg":"got request","tracing_id":"1234"}
+{"tracing_id":"1234","msg":"got request"}
 `
 
 	if buf.String() != exp {
@@ -56,10 +56,12 @@ func TestLogger_pairs(t *testing.T) {
 
 	l := kvlog.New(kvlog.NewSyncHandler(&buf, kvlog.JSONLFormatter()))
 
-	l.With().Pairs(kvlog.Pairs{
+	l.Logs("pairs", kvlog.WithPairs(kvlog.Pairs{
 		"foo":  "bar",
 		"spam": "eggs",
-	}).Log("pairs")
+	})...)
+
+	t.Log(buf.String())
 
 	var got map[string]interface{}
 	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
@@ -89,7 +91,7 @@ func TestLogger_withTimeHook(t *testing.T) {
 		AddHook(kvlog.TimeHook)
 	now := time.Now()
 
-	l.Log("hello")
+	l.Logs("hello")
 	l.Logf("hello, %s", "world")
 
 	exp := fmt.Sprintf(`{"time":"%s","msg":"hello"}
@@ -113,10 +115,10 @@ func TestLogger_concurrentTest(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			for j := 0; j < 100; j++ {
-				l.With().
-					KV("i", i).
-					KV("j", j).
-					Log("msg")
+				l.Logs("msg",
+					kvlog.WithKV("i", i),
+					kvlog.WithKV("j", j),
+				)
 
 				time.Sleep(time.Duration(rand.Intn(20)) * time.Millisecond)
 			}

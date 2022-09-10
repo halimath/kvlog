@@ -56,12 +56,12 @@ func (m *accessLogMW) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.delegate.ServeHTTP(wrapper, r)
 
 	requestTime := time.Since(startTime)
-	m.logger.With().
-		KV("method", r.Method).
-		KV("url", r.URL).
-		KV("status", wrapper.statusCode).
-		Dur(requestTime).
-		Log("request")
+	m.logger.Logs("request",
+		WithKV("method", r.Method),
+		WithKV("url", r.URL),
+		WithKV("status", wrapper.statusCode),
+		WithDur(requestTime),
+	)
 }
 
 // Middleware returns a http.Handler that acts as an access log middleware.

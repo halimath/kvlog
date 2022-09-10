@@ -54,47 +54,43 @@ events.
 
 ## Emitting Events
 
-The easiest way to emit a simple log message is to use a `Logger`'s `Log` or `Logf` method.
+The easiest way to emit a simple log message is to use a `Logger`'s `Log`, `Log` or `Logf` method.
 
 ```go
-kvlog.L.Log("hello, world")
+kvlog.L.Logs("hello, world")
 kvlog.L.Logf("hello, %s", "world)
 ```
 
-With the default JSONL formatter, this produces:
+`Log` will log all given key-value pairs while `Logs` and `Logf` will format a message with additional 
+key-value pairs. With the default JSONL formatter, this produces:
 
 ```json
 {"msg":"hello"}
 {"msg":"hello, world"}
 ```
 
-If you want to add more key-value pairs - which is the primary use case for a structured logger - you have to
-create an `Event` first. This is done with the `Logger`'s `With` method. This creates an `Event` that can be 
-extended by calling its `KV` or delegating methods (such as `Err` or `Dur` or `Pairs`). Eventually, submit the
-Event by invoking `Log` or `Logf`. Anything passed to `Log` is under under the `Event`'s `"msg"` key.
+If you want to add more key-value pairs - which is the primary use case for a structured logger - you can pass
+additional arguments to any of the log methods. key-value pairs are best created using one of the `With...`
+functions from `kvlog`.
 
 ```go
-kvlog.L.With().
-	KV("tracing_id", 1234).
-	Dur(time.Second).
-	Err(fmt.Errorf("some error")).
-	Pairs(kvlog.Pairs{
-		"foo":  "bar",
-		"spam": "eggs",
-	})	
-	Log("hello, world")
+kvlog.L.Logs("hello, world",
+	kvlog.WithKV("tracing_id", 1234),
+	kvlog.WithDur(time.Second),
+	kvlog.WithErr(fmt.Errorf("some error")),
+)
 ```
 
 ## Deriving Loggers
 
 Logger's can be derived from another Logger. This enables to configure a set of key-value-pairs to be added
 to every event emmitted via the deriverd logger. The syntax works similar to emitting log messages this time
-only invoking the `Logger()` method instead of `Log`.
+only invoking the `Sub` method instead of `Log`.
 
 ```go
-dl := l.With().
-	KV("tracing_id", "1234").
-	Logger()
+dl := l.Sub(
+	kvlog.WithKV("tracing_id", "1234"),
+)
 ```
 
 ## Hooks
@@ -122,11 +118,11 @@ extractTracingID := func() string {
 // Create a logger and add the hook
 logger := kvlog.New(kvlog.NewSyncHandler(os.Stdout, kvlog.JSONLFormatter())).
 	AddHook(kvlog.HookFunc(func(e *kvlog.Event) {
-		e.KV("tracing_id", extractTracingID())
+		e.AddPair(kvlog.WithKV("tracing_id", extractTracingID()))
 	}))
 
 // Emit some event
-logger.Log("request")
+logger.Logs("request")
 ```
 
 This example produces:
@@ -209,7 +205,7 @@ Changes to these variables only take effect for loggers/handlers created after t
 assigned. Use at your own risk.
 
 Variable | Default Value | Description
--- | -- | --
+:-- | --: | --
 `DefaultEventSize` | 16 | The default size Events created from an Event pool.
 `InitialEventPoolSize` | 128 | Number of events to allocate for a new Event pool.
 `AsyncHandlerBufferSize` | 2048 | Defines the size of an async handler's buffer that is preallocated.
@@ -224,23 +220,34 @@ results run on a developers laptop.
 
 Library | ns/op | B/op | allocs/op
 -- | --: | --: | --:
-kvlog (syncHandler)  | 1359 | 56 | 6
-kvlog (asyncHandler)               | 1137 | 56 | 6
-zerolog                          | 351 | 0 | 0
-logrus                            | 4719 | 2192 | 34
-go-kit/log                          | 2248 | 970 | 18
+kvlog (sync handler) | 1527 | 152 | 8
+kvlog (async handler) | 1392 | 153 | 8
+zerolog | 352.9 | 0 | 0
+logrus | 4430 | 2192 |34
+go-kit/log  | 2201 | 970 | 18
+
 
 # Changelog
 
-## 0.8.1
+## 0.9.0
+
+__:warning: breaking change:__ This version provides a new API which is _not compatible_ to the API exposed
+before. This involves the way loggers and other components are configured (which normally only affects a small
+portion of the using code) as well as the way log events are emitted. The interface emitting log messages
+remains similar.
+
+* New API
+* Performance improvements
+
+## 0.8.1 - retracted
 
 * Fix: add `sync.Mutex` to lock `Handler`
 
-## 0.8.0
+## 0.8.0 - retracted
 
 * added `NoOpHandler` to easily silence logging output
 
-## 0.7.0 
+## 0.7.0 - retracted
 
 __:warning: breaking change:__ This version provides a new API which is _not compatible_ to the API exposed
 before. This involves the way loggers and other components are configured as well as how log events are
