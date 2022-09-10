@@ -28,7 +28,7 @@ structured log events while keeping up a good performance.
 
 ## Installation
 
-`kvlog` uses go modules and requires Go 1.11 or greater.
+`kvlog` uses go modules and requires Go 1.16 or greater.
 
 ```
 $ go get -u github.com/halimath/kvlog
