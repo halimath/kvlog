@@ -131,6 +131,25 @@ This example produces:
 {"tracing_id":"1234","msg":"request"}
 ```
 
+## Passing a logger by `Context`
+
+The go standard library provides package `context` to pass contextual values
+to operations being called downstream. `kvlog` provides functions that hook into
+a context and add a `Logger` which can later be retrieved. As a sub logger can
+be configured with context keys, you can pass that logger down via the context.
+
+Use `ContextWithLogger` to create a derived context holding a logger. Calling
+`FromContext` restores the logger. If no logger is contained in the context a
+default NoOp logger is returned, so code can run without panic.
+
+```go
+ctx = ContextWithLogger(ctx, subLogger)
+
+// ...
+l = FromContext(ctx)
+l.Logs("my message")
+```
+
 ## Formatters
 
 The kvlog package comes with three Formatters out of the box:
@@ -228,6 +247,11 @@ go-kit/log  | 2201 | 970 | 18
 
 
 # Changelog
+
+## 0.10.0
+
+* Context API
+* NoOp Logger
 
 ## 0.9.0
 
