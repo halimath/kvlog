@@ -328,3 +328,22 @@ func isTerminal() bool {
 	}
 	return false
 }
+
+type noOpLogger struct{}
+
+func (l *noOpLogger) AddHook(Hook) Logger {
+	return l
+}
+func (*noOpLogger) Log(pairs ...*Pair)                      {}
+func (*noOpLogger) Logs(msg string, pairs ...*Pair)         {}
+func (*noOpLogger) Logf(format string, args ...interface{}) {}
+func (l *noOpLogger) Sub(pairs ...*Pair) Logger {
+	return l
+}
+
+var noOpLoggerValue = &noOpLogger{}
+
+// NoOPLogger creates a new no operation logger that discards all log messages.
+func NoOpLogger() Logger {
+	return noOpLoggerValue
+}
