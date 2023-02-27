@@ -167,8 +167,9 @@ Custom formatters may be created by implementing the `kvlog.Formatter` interface
 
 ## HTTP Middleware
 
-`kvlog` contains a HTTP middleware that generates an access log. It wraps another `http.Hander` allowing you 
-to log only requests on those handlers you are interested in.
+`kvlog` contains a HTTP middleware that generates an access log and supports adding a logger to the request's
+`Context`. The middleware is compatible with frameworks such as Chi that support `Use` but you can also
+use the middleware with bare `net/http`. 
 
 ```go
 package main
@@ -183,7 +184,7 @@ func main() {
     mux := http.NewServeMux()
     // ...
 	kvlog.L.Log("started")
-	http.ListenAndServe(":8000", kvlog.Middleware(kvlog.L, mux))
+	http.ListenAndServe(":8000", kvlog.Middleware(kvlog.L, true)(mux))
 }
 ```
 

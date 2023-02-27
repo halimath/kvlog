@@ -28,7 +28,8 @@ func TestMiddleware(t *testing.T) {
 	var out bytes.Buffer
 	logger := New(NewSyncHandler(&out, JSONLFormatter()))
 
-	handler := Middleware(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := Middleware(logger, true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		FromContext(r.Context()).Logs("from context")
 		w.Header().Add("X-Foo", "bar")
 		w.WriteHeader(http.StatusNoContent)
 		w.Write([]byte("hello, world"))
@@ -39,7 +40,8 @@ func TestMiddleware(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	expected := `{"msg":"request","dur":"0.000s","status":204,"url":"/test/path","method":"get"}
+	expected := `{"url":"/test/path","method":"get","msg":"from context"}
+{"url":"/test/path","method":"get","msg":"request","dur":"0.000s","status":204}
 `
 
 	if expected != out.String() {
