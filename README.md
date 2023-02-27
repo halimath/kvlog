@@ -249,6 +249,13 @@ go-kit/log  | 2201 | 970 | 18
 
 # Changelog
 
+## 0.11.0
+
+__:warning: breaking change:__ This version changes the API of the HTTP middleware function
+
+* New HTTP middleware function compatible with other frameworks (such as Chi)
+* Middleware can add logger to `Context`
+
 ## 0.10.0
 
 * Context API
