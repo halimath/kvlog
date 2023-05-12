@@ -41,9 +41,12 @@ func TestLogger_noTimeHook(t *testing.T) {
 	nl := l.Sub(kvlog.WithKV("tracing_id", "1234"))
 	nl.Logs("got request")
 
+	l.Logs("goodbye")
+
 	exp := `{"msg":"hello"}
 {"msg":"hello, world"}
 {"tracing_id":"1234","msg":"got request"}
+{"msg":"goodbye"}
 `
 
 	if buf.String() != exp {

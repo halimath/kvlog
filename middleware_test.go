@@ -37,11 +37,16 @@ func TestMiddleware(t *testing.T) {
 
 	req := httptest.NewRequest("get", "/test/path", nil)
 	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
 
+	req = httptest.NewRequest("delete", "/test/anotherpath", nil)
+	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
 	expected := `{"url":"/test/path","method":"get","msg":"from context"}
 {"url":"/test/path","method":"get","msg":"request","dur":"0.000s","status":204}
+{"url":"/test/anotherpath","method":"delete","msg":"from context"}
+{"url":"/test/anotherpath","method":"delete","msg":"request","dur":"0.000s","status":204}
 `
 
 	if expected != out.String() {

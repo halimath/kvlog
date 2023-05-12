@@ -52,7 +52,7 @@ func Middleware(l Logger, addToContext bool) func(http.Handler) http.Handler {
 				statusCode: 200,
 			}
 
-			l = l.Sub(
+			l := l.Sub(
 				WithKV("method", r.Method),
 				WithKV("url", r.URL),
 			)
