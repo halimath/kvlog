@@ -18,26 +18,67 @@
 package kvlog
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"time"
 )
 
 type responseWriterWrapper struct {
-	w          http.ResponseWriter
-	statusCode int
+	w            http.ResponseWriter
+	statusCode   int
+	bytesWritten uint64
 }
+
+var (
+	_ http.ResponseWriter = &responseWriterWrapper{}
+	_ http.Flusher        = &responseWriterWrapper{}
+	_ http.Hijacker       = &responseWriterWrapper{}
+	_ http.Pusher         = &responseWriterWrapper{}
+)
 
 func (w *responseWriterWrapper) Header() http.Header {
 	return w.w.Header()
 }
 
-func (w *responseWriterWrapper) Write(data []byte) (int, error) {
-	return w.w.Write(data)
+func (rw *responseWriterWrapper) Write(b []byte) (int, error) {
+	if rw.statusCode == 0 {
+		// Default to 200 if WriteHeader hasn't been called yet
+		rw.statusCode = http.StatusOK
+	}
+	n, err := rw.w.Write(b)
+	rw.bytesWritten += uint64(n)
+	return n, err
 }
 
 func (w *responseWriterWrapper) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.w.WriteHeader(statusCode)
+}
+
+// satisfy http.Flusher
+func (rw *responseWriterWrapper) Flush() {
+	if f, ok := rw.w.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// satisfy http.Hijacker
+func (rw *responseWriterWrapper) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := rw.w.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+
+	return nil, nil, fmt.Errorf("http.Hijacker not supported")
+}
+
+// satisfy http.Pusher
+func (rw *responseWriterWrapper) Push(target string, opts *http.PushOptions) error {
+	if p, ok := rw.w.(http.Pusher); ok {
+		return p.Push(target, opts)
+	}
+	return http.ErrNotSupported
 }
 
 // Middleware returns a middleware function that enables logging on l.

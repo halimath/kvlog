@@ -38,7 +38,7 @@ func ExampleNewAsyncHandler() {
 
 }
 
-func ExampleCustomHook() {
+func ExampleHookFunc() {
 	extractTracingID := func() string {
 		// some real implementation here
 		return "1234"

@@ -248,6 +248,12 @@ go-kit/log  | 2201 | 970 | 18
 
 
 # Changelog
+## 0.12.0
+
+* HTTP middleware's `responeWrapper` satifies additional go `http` interfaces:
+	* `http.Flusher`
+	* `http.Hijacker`
+	* `http.Pusher`
 
 ## 0.11.0
 
@@ -322,7 +328,7 @@ API exposed before.
 # License
 
 ```
-Copyright 2019, 2020 Alexander Metzner.
+Copyright 2019 - 2025 Alexander Metzner.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
